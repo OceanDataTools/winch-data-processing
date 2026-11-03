@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+# Raw winch data used locally
+/data/
+# Generated reports
+/output/
+.DS_Store
+# Users' configs (site.toml, cruise configs); only the examples are part of the repo
+/configs/*
+!/configs/*.example.toml

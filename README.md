@@ -1,0 +1,128 @@
+# winch-data-processing
+
+Wire logs and RVSS Appendix A checks from oceanographic winch data.
+
+[RVSS Appendix A](https://www.unols.org/document/document/research-vessel-safety-standards-rvss)
+("UNOLS Rope and Cable Safe Working Standards", RVSS 11th edition, updated 25 June 2026) asks a
+vessel operator to keep, for each tension member, a log with every deployment's maximum
+tension, the line out at that time and the maximum payout (A.5.2.1, A.5.3.1, A.8.3.6), and to
+meet the requirements of the table its selected factor of safety falls in (Tables A.8.1 to
+A.8.5): tension logging rates, alarms, calibration, sheave sizes, break test intervals. This tool
+reads a winch's raw tension and payout data, finds the deployments, writes the wire log, and
+checks the cruise against those requirements.
+
+Part of the [OceanDataTools](https://github.com/OceanDataTools) QA family with
+[nav-qa-processing](https://github.com/OceanDataTools/nav-qa-processing) and
+[sbe-qa-processing](https://github.com/OceanDataTools/sbe-qa-processing), and built the same way.
+
+**Status:** Phase 1 of [docs/architecture.md](docs/architecture.md)'s plan: the readers below,
+deployments, the wire log and the checks. The PDF report, figures, notebook and the OpenVDM hook
+come next.
+
+## Install
+
+Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and git.
+
+```bash
+git clone https://github.com/OceanDataTools/winch-data-processing.git
+cd winch-data-processing
+uv sync
+uv run pytest
+```
+
+## Use
+
+```bash
+cp configs/config.example.toml configs/SR2612_CTD.toml   # then fill it in
+uv run winch-data-processing run data/SR2612_winch -c configs/SR2612_CTD.toml -o output
+```
+
+`run` writes `<CRUISE>_<WINCH>_wire_log.csv` and `<CRUISE>_<WINCH>_checks.csv` and prints the
+checks; it exits 1 when a check fails.
+
+| Command | What it does |
+|---|---|
+| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force]` | Read the winch's raw files, find the deployments, write the wire log and the checks |
+| `formats` | List the data formats |
+
+Every command takes `-v` (INFO) or `-vv` (DEBUG).
+
+### Data formats
+
+| `[data] format` | Data |
+|---|---|
+| `lci90i` | The LCI-90i wire monitoring display's `RD` record: `02RD,time,tension [lbf],speed [m min-1],payout [m],checksum`, the checksum the sum of the bytes before it; other message types are counted, not read |
+| `openrvdas_lci90i` | The same, logged by OpenRVDAS, each line led by its ISO 8601 timestamp; records split across two lines are joined. The logger's clock by default: RR2403's displays were hours to a month off |
+| `delimited` | Delimited text, its time, tension, payout and speed columns named in `[data.columns]` |
+
+The LCI-90i reader is checked against RR2403's two winches (R2R filesets 160178 and 160181,
+Revelle's Markey DESH-5 and DUTW-9-11); `tests/data/` has its one cast. MOTU, Markey and DynaCon
+control systems' own logs are planned and need sample files.
+
+### The wire log
+
+A `# keyword: value` header (the tension member, its NBL, ABL, selected FS, safe working tension
+and table, the winch, the sheave train with each D/d), then a row a deployment:
+
+| Column | Unit | |
+|---|---|---|
+| `cast` | 1 | Deployment number |
+| `start`, `end` | | First and last record, UTC |
+| `duration` | s | |
+| `max_payout` | m | Maximum payout |
+| `max_tension` | lbf | Maximum tension |
+| `max_tension_time` | | Its time, UTC |
+| `payout_at_max_tension` | m | Line out at maximum tension |
+| `min_factor_of_safety` | 1 | ABL / maximum tension |
+| `samples` | 1 | Tension records |
+| `logging_rate` | Hz | From the median interval |
+| `longest_gap` | s | Longest interval between records |
+
+### The checks
+
+| Check | Section | From |
+|---|---|---|
+| Deployments | A.5.2.1 | data |
+| Tension within the safe working tension (ABL / selected FS) | A.2.19, Tables A.8.1–A.8.5 | data |
+| Never below the lowest FS allowed (cable 2.0, wire rope 1.5, synthetic 5.0) | Tables A.8.3, A.8.4, A.8.3.1 | data |
+| Peak tension within the elastic limit (cable FS 1.8, wire rope 1.33) | A.5.6 | data |
+| Tension logging rate (3 Hz, or 20 Hz) | Tables A.8.2–A.8.5 | data |
+| Gaps in the tension record | Tables A.8.2–A.8.5 | data |
+| Tension alarm setting | Tables A.8.2–A.8.5 | config |
+| Alarm conditions in the logged data | Tables A.8.2–A.8.5 | operator |
+| Tension display refresh rate | Tables A.8.2–A.8.5 | config |
+| Tension measuring system calibration (every 6 months) | Tables A.8.2–A.8.5 | config |
+| Tension measuring accuracy (4 % or 3 %) | Tables A.8.2–A.8.5 | config |
+| Sheaves and load-carrying rollers (D/d 40, 400 d1, groove 1.5 d) | Tables A.8.2–A.8.5 | config |
+| Break test interval (24, 12 or 6 months) | Tables A.8.1–A.8.4, A.5.1.1 | config |
+| Assigned breaking load (retire below 50 % of NBL) | A.5.6 | config |
+
+What only the operator's own records can show (operator certification, deck safety, termination
+plans, lubrication, cutbacks) is listed in [docs/rvss-appendix-a.md](docs/rvss-appendix-a.md).
+
+## Configuration
+
+A TOML per winch and cruise; [configs/config.example.toml](configs/config.example.toml) shows
+every key. Unknown keys are an error saying where they belong.
+
+| Table | Keys |
+|---|---|
+| `[cruise]` | `id`; `start`, `end` (dates, optional: keep only records within them) |
+| `[winch]` | `name`, `manufacturer`, `model`, `record_name` (the name in the data's records) |
+| `[tension_member]` | `id` (NSF identifier), `kind` (`cable`, `wire_rope`, `synthetic`), `description`, `nominal_breaking_load`, `factor_of_safety` (selected), `diameter` (d), `largest_wire_diameter` (d1), `tension_unit`, `diameter_unit` |
+| `[[tension_member.break_test]]` | `date`, `load` (TBL) |
+| `[[sheave]]` | `name`, `tread_diameter` (D), `groove_width` (w) |
+| `[monitoring]` | `system`, `display_rate` [Hz], `last_calibration`, `accuracy` [%], `alarm_tension` |
+| `[data]` | `format`, `files` (glob), `time` (`logger` or `instrument`), `tension_unit`, `payout_unit`, `speed_unit`, `delimiter`, `header_lines`, `time_format`; `[data.columns]` `time`, `tension`, `payout`, `speed` |
+| `[thresholds]` | `deploy_payout` [m], `merge_gap` [s], `min_cast_duration` [s], `cast_padding` [s], `max_wire_speed` [m min-1], `max_logging_gap` [s] |
+
+## Development
+
+```bash
+uv run pytest -n auto
+uv run ruff check . && uv run ruff format --check .
+```
+
+## License
+
+MIT; see [LICENSE.md](LICENSE.md).

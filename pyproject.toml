@@ -1,0 +1,31 @@
+[project]
+name = "winch-data-processing"
+version = "0.1.0"
+description = "Wire logs and RVSS Appendix A compliance reports from oceanographic winch tension, payout and speed data"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.md"]
+requires-python = ">=3.11"
+dependencies = [
+  "numpy >= 2.0",
+]
+
+[project.scripts]
+winch-data-processing = "winch_data_processing.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest >= 8.3",
+  "pytest-xdist >= 3.8.0",
+  "ruff >= 0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 99
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

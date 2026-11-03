@@ -1,0 +1,73 @@
+# winch-data-processing config: one winch and the tension member on it, for one cruise.
+# Copy to configs/<CRUISE>_<WINCH>.toml (ignored by git) and fill in. Every key is shown;
+# optional ones are commented out, thresholds at their defaults.
+# Section numbers are RVSS Appendix A's (11th edition, updated 25 June 2026).
+
+[cruise]
+id = "SR2612"
+# start = 2026-06-19          # keep only records from this UTC day...
+# end = 2026-06-21            # ...to the end of this one
+
+[winch]
+name = "CTD"                  # names the outputs
+manufacturer = "Markey"
+model = "DUSH-5"
+# record_name = "CTD"         # the name in the data's records (LCI-90i Name), to keep only this winch's
+
+[tension_member]
+id = "NSF-CTD-1234"           # NSF tension member identifier (A.5.2.1)
+kind = "cable"                # cable, wire_rope or synthetic
+description = "0.322 in. 3-conductor electromechanical cable"
+nominal_breaking_load = 10000 # NBL, for the end condition in use (free to rotate for a CTD)
+factor_of_safety = 2.5        # the FS the operator selected (A.5.1.1): sets the table (A.8.1-A.8.5)
+diameter = 0.322              # d
+largest_wire_diameter = 0.0375 # d1, the largest armor (or outer) wire
+# tension_unit = "lbf"        # of the breaking loads and alarm_tension: lbf, N, kN or kgf
+# diameter_unit = "in"        # of every diameter and groove: in or mm
+
+# Break tests, oldest first; the ABL is the latest TBL when it's below the NBL (A.5.1.1)
+[[tension_member.break_test]]
+date = 2025-08-01
+load = 10400
+
+[[sheave]]                    # each sheave and load-carrying roller, winch to water (A.8.2)
+name = "Level wind"
+tread_diameter = 16.0         # D, the root diameter
+groove_width = 0.40           # w
+
+[[sheave]]
+name = "A-frame block"
+tread_diameter = 16.0
+groove_width = 0.40
+
+[monitoring]
+system = "LCI-90i"
+display_rate = 10             # [Hz] at the winch operator's station
+last_calibration = 2026-03-15
+accuracy = 2.0                # [% of the applied load]
+alarm_tension = 3500          # alarms sound at this tension (in tension_unit)
+
+[data]
+format = "openrvdas_lci90i"   # winch-data-processing formats lists them
+files = "**/*winch*"          # glob under DATA_DIR
+# time = "logger"             # logger or instrument: whose clock, when a record has both
+# tension_unit = "lbf"        # of the data: lbf, N, kN or kgf
+# payout_unit = "m"           # m or ft
+# speed_unit = "m min-1"      # m min-1, m s-1 or ft min-1
+# delimited only:
+# delimiter = ","
+# header_lines = 1            # the header is the last of them
+# time_format = "iso"         # iso, epoch, or a strptime format, e.g. "%m/%d/%Y %H:%M:%S.%f"
+# [data.columns]              # by header name or 0-based index
+# time = "Time"
+# tension = "Tension"
+# payout = "Payout"
+# speed = "Speed"
+
+[thresholds]
+deploy_payout = 10.0          # [m] payout beyond which the tension member is deployed
+merge_gap = 120.0             # [s] shorter dips below deploy_payout are the same deployment
+min_cast_duration = 60.0      # [s]
+cast_padding = 300.0          # [s] before and after, for the lift and the recovery
+max_wire_speed = 300.0        # [m min-1] faster payout steps are counter resets, not deployments
+max_logging_gap = 5.0         # [s] longest gap in a deployment's tension record

@@ -96,6 +96,14 @@ raw files --formats/<reader>--> Records (per file, the data's units)
   still exits 1 on a failed check.
 - **No cruise extent.** nav-qa-processing's hook sets OpenVDM's `cruiseExtent` from the track;
   winch data has no positions, so this hook neither sets nor reads it.
+- **Reading for speed and memory, with one set of rules.** The LCI-90i reader takes the usual
+  fixed-width line (every RR2403 line but about 1 in 3,000) from its bytes with numpy, a block
+  at a time; every other line goes through the per-line code, which decides the same
+  (`tests/test_formats.py` runs a corpus of awkward lines both ways). Records are written into
+  one set of columns for the fileset, sized by its line count, so a run holds 32 bytes a
+  record and no per-file copies; `find_casts` adds 8 a record while it runs. This avoids
+  per-file arrays rather than tuning the allocator: glibc keeps their freed memory once its
+  mmap threshold has risen, about another copy of the cruise.
 - **Peak tension is the logged maximum**, unfiltered: Appendix A asks for the peak, and the
   tables' logging rates are there so peaks are captured. A spike filter, if a sensor needs one,
   would be a per-format QC step stated in the docs, not a silent default.
@@ -120,5 +128,10 @@ raw files --formats/<reader>--> Records (per file, the data's units)
    against OpenVDM 2.17's own code (`tests/test_openvdm_contract.py`). Phase 2's reports go
    into the same extra directory when they come (`--theme`, `--execute-notebook` as
    nav-qa-processing's hook has).
-6. **Then:** memory and speed for 20 Hz over long cruises (a month at 20 Hz is 52 M records), as
-   nav-qa-processing's #157 did.
+6. **Memory and speed (done in part).** RR2403's hydro winch, 4 days at 20 Hz (6.57 M
+   records), outputs unchanged: 25 s and 865 MB peak before, 3.4 s and 361 MB after (macOS);
+   37 s and 866 MB before, 6 s and 330 MB after (Linux). A month at 20 Hz (52 M records)
+   would hold about 1.7 GB and peak near 2.1 GB, in about 30 s. Left: tension and speed are
+   only used within deployments, so a reader that found them as it went could drop the idle
+   records' (most of a cruise); and the hook could keep earlier days' columns rather than
+   re-reading them every run.

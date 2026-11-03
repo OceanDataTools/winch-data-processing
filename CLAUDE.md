@@ -26,7 +26,8 @@ What exists (Phase 1):
   written value through `quantities.py`.
 - `formats/`: `READERS`; `lci90i` and `openrvdas_lci90i` (the LCI-90i's `RD` record and its
   byte-sum checksum, from RR2403: R2R filesets 160178 and 160181, Revelle's hydro and trawl
-  winches, R2R format 100038), `delimited`. RR2403's one cast is `tests/data/` (its README) and
+  winches, R2R format 100038), `delimited`. The LCI-90i reader has a fixed-width fast path
+  and a per-line path that must decide the same (`docs/architecture.md`, Decisions). RR2403's one cast is `tests/data/` (its README) and
   `tests/test_rr2403.py`; the other winch formats need sample files.
 - `rawdata.py`, `casts.py`, `checks.py`, `assess.py`, `wirelog.py`, `cli.py` (`run`,
   `formats`, and the integrations' commands), `clitools.py`, `network.py`.

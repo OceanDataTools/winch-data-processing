@@ -4,6 +4,11 @@
 format's reader, converts tension, payout and speed (`units.py`), keeps the cruise's dates when
 the config has them, and sorts by time. A file that can't be read is recorded, not raised, so
 one bad file never stops a cruise; lines a reader couldn't use are counted by reason.
+
+Memory: the files' records are written into one set of columns (`formats.Columns`), sized by
+the fileset's line count, so a run holds its records, 32 bytes each, plus a block's work: no
+per-file arrays, no joining them. Records are copied again only to drop those outside the
+cruise or to sort, a column at a time.
 """
 
 import gzip
@@ -51,53 +56,71 @@ def find_files(directory: Path, pattern: str) -> list[Path]:
 def read_fileset(directory: Path | str, config: Config) -> WinchData:
     source = config.data
     reader = formats.READERS[source.format]
-    parts, files, errors, skipped, names = [], [], [], {}, Counter()
+    paths = find_files(Path(directory), source.files)
+    out = formats.Columns(sum(_lines(path) for path in paths))
+    files, errors, skipped, names = [], [], {}, Counter()
     backwards = 0
-    for path in find_files(Path(directory), source.files):
+    for path in paths:
+        start = out.size
         try:
-            with _open(path) as lines:
-                found = reader.read(lines, source, config.record_name)
+            if reader.read_file is not None:
+                with _open_bytes(path) as stream:
+                    found = reader.read_file(stream, source, config.record_name, out)
+            else:
+                with _open(path) as lines:
+                    found = reader.read(lines, source, config.record_name)
+                out.extend(found.time, found.tension, found.payout, found.speed)
         except (OSError, UnicodeDecodeError, EOFError) as error:
+            out.size = start  # what it wrote before failing isn't kept
             errors.append(f"{path.name}: {error}")
             continue
         files.append(path)
         names.update(found.names)
         if found.skipped:
             skipped[path.name] = found.skipped
-        if len(found):
-            backwards += int(np.count_nonzero(np.diff(found.time) < np.timedelta64(0)))
-            parts.append(found)
-        logger.info("%s: %d records", path.name, len(found))
-    if not parts:
-        empty = np.array([], dtype=float)
-        return WinchData(
-            np.array([], "datetime64[ns]"), empty, empty, empty, files, errors, skipped, names
-        )
-    time = np.concatenate([p.time for p in parts])
-    tension = units.convert(
-        np.concatenate([p.tension for p in parts]), source.tension_unit, units.TENSION, "tension"
-    )
-    payout = units.convert(
-        np.concatenate([p.payout for p in parts]), source.payout_unit, units.LENGTH, "payout"
-    )
-    speed = units.convert(
-        np.concatenate([p.speed for p in parts]), source.speed_unit, units.SPEED, "speed"
-    )
+        time = out.time[start : out.size]
+        backwards += int(np.count_nonzero(time[1:] < time[:-1]))
+        logger.info("%s: %d records", path.name, out.size - start)
+    # Copied only to drop records outside the cruise or to sort, a column at a time
+    time = out.time[: out.size]
     keep = _within(time, config)
     outside = int(np.count_nonzero(~keep))
-    order = np.argsort(time[keep], kind="stable")
-    return WinchData(
-        time[keep][order],
-        tension[keep][order],
-        payout[keep][order],
-        speed[keep][order],
-        files,
-        errors,
-        skipped,
-        names,
-        outside,
-        backwards,
-    )
+    keep = keep if outside else None
+    if keep is not None:
+        time = time[keep]
+    order = None if _sorted(time) else np.argsort(time, kind="stable")
+    if order is not None:
+        time = time[order]
+    columns = []
+    for name, table in (
+        ("tension", units.TENSION),
+        ("payout", units.LENGTH),
+        ("speed", units.SPEED),
+    ):
+        values = getattr(out, name)[: out.size]
+        if keep is not None:
+            values = values[keep]
+        if order is not None:
+            values = values[order]
+        columns.append(units.convert(values, getattr(source, f"{name}_unit"), table, name))
+    return WinchData(time, *columns, files, errors, skipped, names, outside, backwards)
+
+
+def _lines(path: Path) -> int:
+    """A file's line count, at least its records' (0 if it can't be read: reading says why)"""
+    lines, last = 0, b"\n"
+    try:
+        with _open_bytes(path) as stream:
+            while block := stream.read(1 << 22):
+                lines += block.count(b"\n")
+                last = block[-1:]
+    except (OSError, EOFError):
+        return 0
+    return lines + (last != b"\n")
+
+
+def _sorted(time: np.ndarray) -> bool:
+    return bool((time[1:] >= time[:-1]).all())
 
 
 def _within(time: np.ndarray, config: Config) -> np.ndarray:
@@ -108,6 +131,11 @@ def _within(time: np.ndarray, config: Config) -> np.ndarray:
     if config.cruise_end is not None:
         keep &= time < np.datetime64(config.cruise_end + timedelta(days=1), "ns")
     return keep
+
+
+def _open_bytes(path: Path):
+    """A file's bytes, gzip-compressed or not"""
+    return gzip.open(path, "rb") if path.suffix == ".gz" else open(path, "rb")
 
 
 def _open(path: Path):

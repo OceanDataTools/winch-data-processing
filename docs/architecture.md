@@ -96,6 +96,23 @@ raw files --formats/<reader>--> Records (per file, the data's units)
   still exits 1 on a failed check.
 - **No cruise extent.** nav-qa-processing's hook sets OpenVDM's `cruiseExtent` from the track;
   winch data has no positions, so this hook neither sets nor reads it.
+- **Reading for speed and memory, with one set of rules.** The LCI-90i reader takes the usual
+  fixed-width line (every RR2403 line but about 1 in 3,000) from its bytes with numpy, a block
+  at a time; every other line goes through the per-line code, which decides the same
+  (`tests/test_formats.py` runs a corpus of awkward lines both ways). Records are written into
+  one set of columns for the fileset, sized by its line count, so there are no per-file
+  copies. This avoids per-file arrays rather than tuning the allocator: glibc keeps their freed
+  memory once its mmap threshold has risen, about another copy of the cruise.
+- **Idle records are dropped as they're read** (`idle.py`). Outside its deployments
+  `find_casts` needs only the records near a plausible payout crossing (the padding and the
+  merge gap), those of a run entered by one, and either side of each payout change; the rest,
+  most of a cruise (RR2403's hydro winch: 99.4 %), are dropped as each file is settled, so a
+  run holds the kept records and about a file's. Deployments, checks and the wire log are as
+  with every record kept (`tests/test_idle.py`: random cruises, and a test that fails without
+  each rule). The tension of every record is kept minute by minute (`WinchData.envelope`:
+  each minute's minimum and maximum), for Phase 2's plot of the whole cruise; the payout's
+  changes are all kept, so it plots exactly. Files out of time order are read again keeping
+  every record. `WinchData.records` counts what was read; `len(data)`, what was kept.
 - **Peak tension is the logged maximum**, unfiltered: Appendix A asks for the peak, and the
   tables' logging rates are there so peaks are captured. A spike filter, if a sensor needs one,
   would be a per-format QC step stated in the docs, not a silent default.
@@ -120,5 +137,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
    against OpenVDM 2.17's own code (`tests/test_openvdm_contract.py`). Phase 2's reports go
    into the same extra directory when they come (`--theme`, `--execute-notebook` as
    nav-qa-processing's hook has).
-6. **Then:** memory and speed for 20 Hz over long cruises (a month at 20 Hz is 52 M records), as
-   nav-qa-processing's #157 did.
+6. **Memory and speed (done in part).** RR2403's hydro winch, 4 days at 20 Hz (6.57 M
+   records), outputs unchanged: 25 s and 865 MB peak before, 3.4 s and 170 MB after (macOS);
+   37 s and 866 MB before, 6 s and 140 MB after (Linux). Memory now follows the largest file,
+   not the cruise, and time the cruise's length: a month at 20 Hz (52 M records) about 30 s.
+   Left: the hook could keep earlier days' kept records rather than re-reading them every
+   run.

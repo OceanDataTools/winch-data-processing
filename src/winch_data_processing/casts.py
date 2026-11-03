@@ -26,6 +26,8 @@ import numpy as np
 from winch_data_processing.config import Thresholds
 from winch_data_processing.rawdata import WinchData
 
+CHUNK = 1 << 20  # records converted at a time
+
 
 @dataclass(frozen=True)
 class Cast:
@@ -54,14 +56,14 @@ class Cast:
 def find_casts(data: WinchData, thresholds: Thresholds) -> list[Cast]:
     if not len(data) or not data.has_payout:
         return []
-    seconds = (data.time - data.time[0]) / np.timedelta64(1, "s")
-    deployed = np.nan_to_num(data.payout, nan=-np.inf) > thresholds.deploy_payout
-    step = _plausible_steps(data.payout, seconds, thresholds.max_wire_speed)
-    runs = [
-        (a, b)
-        for a, b in _runs(deployed)
-        if a > 0 and b < len(deployed) and step[a - 1] and step[b - 1]  # crossed in and out
-    ]
+    seconds = _seconds(data.time)
+    deployed = data.payout > thresholds.deploy_payout  # NaN isn't
+    runs = [(a, b) for a, b in _runs(deployed) if 0 < a and b < len(deployed)]
+    if runs:  # crossed in and out: the steps into and out of each run
+        steps = (np.array(runs) - 1).ravel()
+        speed = thresholds.max_wire_speed
+        crossed = _plausible_steps(data.payout, seconds, steps, speed).reshape(-1, 2).all(axis=1)
+        runs = [run for run, ok in zip(runs, crossed.tolist(), strict=True) if ok]
     runs = _merge(runs, seconds, thresholds.merge_gap)
     runs = [(a, b) for a, b in runs if seconds[b - 1] - seconds[a] >= thresholds.min_cast_duration]
     padded = _pad(runs, seconds, thresholds.cast_padding)
@@ -71,19 +73,36 @@ def find_casts(data: WinchData, thresholds: Thresholds) -> list[Cast]:
     ]
 
 
-def _plausible_steps(payout, seconds, max_speed: float) -> np.ndarray:
-    """Whether each step, record i to i + 1, is one the wire could move at `max_speed`
-    [m min-1] (at least 1 m, for the counter's resolution and jitter)
+def _seconds(time: np.ndarray) -> np.ndarray:
+    """[s] since the first record, as (time - time[0]) / 1 s gives, in one array: the ns
+    offsets divided a chunk at a time into their own buffer
     """
-    limit = np.maximum(max_speed / 60 * np.diff(seconds), 1.0)
+    offsets = time.view(np.int64) - time.view(np.int64)[0]
+    seconds = offsets.view(np.float64)
+    for start in range(0, len(offsets), CHUNK):
+        part = slice(start, start + CHUNK)
+        seconds[part] = offsets[part] / 1e9
+    return seconds
+
+
+def _plausible_steps(payout, seconds, steps: np.ndarray, max_speed: float) -> np.ndarray:
+    """Whether each step, record i to i + 1 for i in `steps`, is one the wire could move at
+    `max_speed` [m min-1] (at least 1 m, for the counter's resolution and jitter)
+    """
+    steps = steps.astype(np.intp)
+    limit = np.maximum(max_speed / 60 * (seconds[steps + 1] - seconds[steps]), 1.0)
     with np.errstate(invalid="ignore"):
-        return np.abs(np.diff(payout)) <= limit
+        return np.abs(payout[steps + 1] - payout[steps]) <= limit
 
 
 def _runs(mask: np.ndarray) -> list[tuple[int, int]]:
     """The (start, stop) index ranges where `mask` is True"""
-    edges = np.flatnonzero(np.diff(np.concatenate(([0], mask.astype(np.int8), [0]))))
-    return list(zip(edges[::2].tolist(), edges[1::2].tolist(), strict=True))
+    edges = (np.flatnonzero(mask[1:] != mask[:-1]) + 1).tolist()
+    if len(mask) and mask[0]:
+        edges.insert(0, 0)
+    if len(mask) and mask[-1]:
+        edges.append(len(mask))
+    return list(zip(edges[::2], edges[1::2], strict=True))
 
 
 def _merge(runs, seconds, gap) -> list[tuple[int, int]]:

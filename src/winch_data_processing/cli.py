@@ -116,7 +116,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def summary(result: WinchResult) -> list[str]:
     """The run's summary: its records and deployments, then each check"""
-    lines = [f"{stem(result.config)}: {len(result.data)} records, {len(result.casts)} deployments"]
+    lines = [
+        f"{stem(result.config)}: {result.data.records} records, {len(result.casts)} deployments"
+    ]
     lines += [
         f"  {MARKS[check.status]:4}  {check.name} ({check.section}): {check.detail}"
         for check in result.checks

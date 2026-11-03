@@ -6,6 +6,8 @@ Breaking loads and tensions are in the config's `tension_unit` (default lbf), di
 the config is read. Unknown keys are an error that says where they're allowed.
 """
 
+import json
+import re
 import tomllib
 from dataclasses import dataclass, field
 from datetime import date
@@ -133,6 +135,12 @@ class Config:
     winch_name: str
     tension_member: TensionMember
     data: DataSource
+    cruise_name: str = ""
+    cruise_pi: str = ""
+    cruise_location: str = ""
+    vessel_name: str = ""
+    contact_institution: str = ""
+    contact_email: str = ""
     winch_manufacturer: str = ""
     winch_model: str = ""
     record_name: str | None = None  # the winch's name in its records, to select them
@@ -145,7 +153,8 @@ class Config:
 
 
 SCHEMA = {
-    "cruise": {"id": None, "start": None, "end": None},
+    "cruise": dict.fromkeys(("id", "name", "pi", "location", "vessel_name", "start", "end")),
+    "provenance": dict.fromkeys(("contact_institution", "contact_email")),
     "winch": {"name": None, "manufacturer": None, "model": None, "record_name": None},
     "tension_member": {
         "id": None,
@@ -211,6 +220,7 @@ def config_from_dict(data: dict, path: Path | None, where: str) -> Config:
 
 def _config(data: dict, path: Path | None) -> Config:
     cruise, winch = data.get("cruise", {}), data.get("winch", {})
+    provenance = data.get("provenance", {})
     member = data.get("tension_member")
     if member is None:
         raise ConfigError("no [tension_member]")
@@ -273,6 +283,12 @@ def _config(data: dict, path: Path | None) -> Config:
     )
     return Config(
         cruise_id=str(_required(cruise, "id", "cruise")),
+        cruise_name=cruise.get("name", ""),
+        cruise_pi=cruise.get("pi", ""),
+        cruise_location=cruise.get("location", ""),
+        vessel_name=cruise.get("vessel_name", ""),
+        contact_institution=provenance.get("contact_institution", ""),
+        contact_email=provenance.get("contact_email", ""),
         winch_name=str(_required(winch, "name", "winch")),
         winch_manufacturer=winch.get("manufacturer", ""),
         winch_model=winch.get("model", ""),
@@ -356,8 +372,16 @@ def _date(value, where: str) -> date:
         raise ConfigError(f"{where}: {value!r} is not a date (YYYY-MM-DD)") from None
 
 
-def check_keys(data: dict, schema: dict, where: str, path: tuple[str, ...] = ()) -> None:
-    """Unknown keys, and tables where values belong or values where tables do, are errors"""
+def check_keys(
+    data: dict,
+    schema: dict,
+    where: str,
+    path: tuple[str, ...] = (),
+    arrays: set[tuple[str, ...]] = ARRAYS,
+) -> None:
+    """Unknown keys, and tables where values belong or values where tables do, are errors.
+    `arrays` are the paths that are arrays of tables
+    """
     for key, value in data.items():
         here = (*path, key)
         name = ".".join(here)
@@ -372,10 +396,56 @@ def check_keys(data: dict, schema: dict, where: str, path: tuple[str, ...] = ())
             ):
                 raise ConfigError(f"{where}: {name} is a value, not a table")
             continue
-        tables = value if here in ARRAYS and isinstance(value, list) else [value]
-        if here in ARRAYS and not isinstance(value, list):
+        tables = value if here in arrays and isinstance(value, list) else [value]
+        if here in arrays and not isinstance(value, list):
             raise ConfigError(f"{where}: {name} is an array of tables ([[{name}]])")
         for table in tables:
             if not isinstance(table, dict):
                 raise ConfigError(f"{where}: {name} is a table, not a value")
-            check_keys(table, sub, where, here)
+            check_keys(table, sub, where, here, arrays)
+
+
+_BARE_KEY = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def toml_value(value) -> str:
+    """A TOML value: a string, bool, number, date or list of them"""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int | float):
+        return repr(value)
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, list | tuple):
+        return f"[{', '.join(toml_value(v) for v in value)}]"
+    # TOML's basic strings take JSON's escapes
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _toml_key(key: str) -> str:
+    return key if _BARE_KEY.fullmatch(key) else json.dumps(key)
+
+
+def dumps_toml(data: dict, path: tuple[str, ...] = ()) -> str:
+    """`data` as TOML that tomllib reads back the same: each table's values, then its tables
+    and arrays of tables. Used for the configs the OpenVDM hook writes, keeping the site TOML's
+    units as they are
+    """
+
+    def is_tables(value) -> bool:
+        return isinstance(value, list) and bool(value) and all(isinstance(v, dict) for v in value)
+
+    lines = [
+        f"{_toml_key(k)} = {toml_value(v)}"
+        for k, v in data.items()
+        if not isinstance(v, dict) and not is_tables(v)
+    ]
+    for key, value in data.items():
+        here = (*path, key)
+        name = ".".join(_toml_key(k) for k in here)
+        if isinstance(value, dict):
+            lines += ["", f"[{name}]", dumps_toml(value, here).rstrip("\n")]
+        elif is_tables(value):
+            for table in value:
+                lines += ["", f"[[{name}]]", dumps_toml(table, here).rstrip("\n")]
+    return "\n".join(lines).lstrip("\n") + "\n"

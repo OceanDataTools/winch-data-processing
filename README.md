@@ -15,9 +15,9 @@ Part of the [OceanDataTools](https://github.com/OceanDataTools) QA family with
 [nav-qa-processing](https://github.com/OceanDataTools/nav-qa-processing) and
 [sbe-qa-processing](https://github.com/OceanDataTools/sbe-qa-processing), and built the same way.
 
-**Status:** Phase 1 of [docs/architecture.md](docs/architecture.md)'s plan: the readers below,
-deployments, the wire log and the checks. The PDF report, figures, notebook and the OpenVDM hook
-come next.
+**Status:** Phase 1 of [docs/architecture.md](docs/architecture.md)'s plan (the readers below,
+deployments, the wire log and the checks) and its [OpenVDM](#openvdm) hook. The PDF report,
+figures and notebook come next.
 
 ## Install
 
@@ -29,6 +29,8 @@ cd winch-data-processing
 uv sync
 uv run pytest
 ```
+
+For the OpenVDM hook, [INSTALL.md](INSTALL.md) installs it where OpenVDM's workers can run it.
 
 ## Use
 
@@ -44,6 +46,9 @@ checks; it exits 1 when a check fails.
 |---|---|
 | `run DATA_DIR -c CONFIG [-o OUTPUT] [--force]` | Read the winch's raw files, find the deployments, write the wire log and the checks |
 | `formats` | List the data formats |
+| `openvdm TRANSFER [--site-config SITE_TOML] ...` | The OpenVDM hook: assess each of the transfer's winches for OpenVDM's current cruise ([OpenVDM](#openvdm)) |
+| `config-from-openvdm TRANSFER [--site-config SITE_TOML] [-o OUTPUT_DIR]` | Write each winch's config TOML from OpenVDM's cruise, as the hook would, without assessing |
+| `site-config [-o SITE_TOML] [--force]` | Write the ship's site TOML by prompting for each field |
 
 Every command takes `-v` (INFO) or `-vv` (DEBUG).
 
@@ -107,7 +112,8 @@ every key. Unknown keys are an error saying where they belong.
 
 | Table | Keys |
 |---|---|
-| `[cruise]` | `id`; `start`, `end` (dates, optional: keep only records within them) |
+| `[cruise]` | `id`; `start`, `end` (dates, optional: keep only records within them); `name`, `pi`, `location`, `vessel_name` (for the wire log's header) |
+| `[provenance]` | `contact_institution`, `contact_email` (for the wire log's header) |
 | `[winch]` | `name`, `manufacturer`, `model`, `record_name` (the name in the data's records) |
 | `[tension_member]` | `id` (NSF identifier), `kind` (`cable`, `wire_rope`, `synthetic`), `description`, `nominal_breaking_load`, `factor_of_safety` (selected), `diameter` (d), `largest_wire_diameter` (d1), `tension_unit`, `diameter_unit` |
 | `[[tension_member.break_test]]` | `date`, `load` (TBL) |
@@ -115,6 +121,82 @@ every key. Unknown keys are an error saying where they belong.
 | `[monitoring]` | `system`, `display_rate` [Hz], `last_calibration`, `accuracy` [%], `alarm_tension` |
 | `[data]` | `format`, `files` (glob), `time` (`logger` or `instrument`), `tension_unit`, `payout_unit`, `speed_unit`, `delimiter`, `header_lines`, `time_format`; `[data.columns]` `time`, `tension`, `payout`, `speed` |
 | `[thresholds]` | `deploy_payout` [m], `merge_gap` [s], `min_cast_duration` [s], `cast_padding` [s], `max_wire_speed` [m min-1], `max_logging_gap` [s] |
+
+## OpenVDM
+
+On a ship running [OpenVDM](https://github.com/OceanDataTools/openvdm), the assessment runs from
+OpenVDM's hooks through the cruise, as nav-qa-processing's and sbe-qa-processing's do:
+- **After each transfer** of the collection system that logs the winches (e.g. OpenRVDAS), a
+  `postCollectionSystemTransfer` hook assesses the cruise so far, for each winch whose files
+  the transfer brought.
+- **When the cruise is finalized,** a `preFinalizeCurrentCruise` hook writes the final wire
+  logs on the whole cruise. OpenVDM waits for them, so they're in the finalized cruise.
+
+**Setting it up** (the install, the extra directory, the ship's site TOML and the hooks in
+`openvdm.yaml`) is in [INSTALL.md](INSTALL.md#install-for-the-openvdm-hook).
+
+### What the hook does
+
+- **The cruise,** from OpenVDM's API (`api/warehouse/getCruiseConfig`): its ID, name, PI,
+  location and dates, and where the transfer's files and the extra directory are. An
+  open-ended cruise ends today, UTC. The vessel's name and contact come from the site TOML, or
+  where it leaves them blank from `openvdm.yaml`'s `vessel` block (OpenVDM 2.17).
+- **The winches,** from the site TOML: a `[[winch]]` table for each, holding a config TOML's
+  tables but `[cruise]` (the tension member, sheaves, monitoring, and `[winch.data]`'s format
+  and files glob within the transfer's directory). The hook assesses the winches whose
+  `transfer` is the hook's or blank, and with `--changed-files` only those whose files changed.
+- **Writes, into the extra directory,** each winch's `<CRUISE>_<WINCH>_wire_log.csv`,
+  `<CRUISE>_<WINCH>_checks.csv` and `<CRUISE>_<WINCH>_config.toml`, the config it made from
+  OpenVDM's cruise and the site TOML, and assessed from: `run -c` on it repeats the run.
+  Earlier runs' files are replaced. As root, the files are given to OpenVDM's warehouse user.
+- **Adds those files to the cruise's MD5 summary,** with OpenVDM's `utils/update_md5_summary.py`
+  (OpenVDM 2.16.1 or later).
+- **Exits 0 whatever the checks found:** a tension over the safe working tension is a finding,
+  in the checks CSV and in OpenVDM's post-hook log as a `FAIL` line, not a failed hook. A hook
+  that fails (OpenVDM unreachable, a transfer that isn't there) does so in one line, which
+  OpenVDM shows as the hook's message; one winch's failure doesn't stop the others.
+
+nav-qa-processing's hook also sets OpenVDM's cruise extent; winch data has no positions, so this
+one doesn't.
+
+**A past cruise,** or any cruise without OpenVDM's API: give its `cruise_config.json` (in the
+cruise's directory, where OpenVDM writes it) with `--cruise-config`, to `openvdm` or
+`config-from-openvdm`.
+
+### The site TOML
+
+[configs/site.example.toml](configs/site.example.toml) shows every key, for Revelle's hydro and
+trawl winches; `site-config` writes one by asking for each field. It lives in the install's
+`configs/site.toml` (`/opt/winch-data-processing/configs/site.toml` on an OpenVDM server):
+`site-config` writes it there and the hook reads it from there, whatever directory either runs
+in; `-o` and `--site-config` name another.
+
+| Table | Keys |
+|---|---|
+| `[vessel]` | `name` |
+| `[openvdm]` | `output_extra_directory` (default `WINCH_QA`): the OpenVDM extra directory the outputs go in |
+| `[provenance]` | `contact_institution`, `contact_email` |
+| `[thresholds]` | As in a config TOML, for every winch; a winch's own `[winch.thresholds]` win |
+| `[[winch]]` | `name` (names its outputs), `transfer` (optional: only that transfer's hook assesses it), `manufacturer`, `model`, `record_name`; and under it, as in a config TOML, `[winch.tension_member]`, `[[winch.tension_member.break_test]]`, `[[winch.sheave]]`, `[winch.monitoring]`, `[winch.data]`, `[winch.thresholds]` |
+
+### Troubleshooting
+
+OpenVDM logs the hook's output in `/var/log/openvdm/post_hooks.log`. To see it directly, run
+the hook's command by hand ([INSTALL.md](INSTALL.md#5-try-it)).
+
+| Message | What it means |
+|---|---|
+| `no site TOML at ...` | Neither `--site-config` nor the install's `configs/site.toml`: write it with `site-config` (INSTALL.md step 3) |
+| `no collection system transfer named ...` | `TRANSFER` isn't a transfer's name in OpenVDM (Configuration > Collection System Transfers) |
+| `no extra directory named 'WINCH_QA'` | Add it in OpenVDM (Configuration > Extra Directories), or set the site TOML's `[openvdm] output_extra_directory` |
+| `no openvdm.yaml at ...` | OpenVDM is installed elsewhere: give `--openvdm-config` |
+| `couldn't reach OpenVDM (...)` | `siteRoot` in `openvdm.yaml` isn't where OpenVDM's web server answers |
+| `TRANSFER: the site config has no [[winch]] in it` | No `[[winch]]` has this `transfer`, or a blank one |
+| `no new or updated winch files` | The transfer brought no file matching a winch's `[winch.data] files`; not an error |
+| `... doesn't exist yet` | The transfer hasn't copied anything for this cruise yet; not an error |
+| `[[winch]] NAME: ...` | That winch's tables can't make a config: the rest of the message says why, as for a config TOML |
+| `the outputs aren't in OpenVDM's MD5 summary: ...` | OpenVDM's `update_md5_summary.py` is missing (OpenVDM before 2.16.1) or failed; for a past cruise, OpenVDM's warehouse doesn't have it. The outputs are written all the same |
+| `0 records` | Nothing matched `[winch.data] files` within the transfer's directory, or nothing was within the cruise's dates |
 
 ## Development
 

@@ -7,6 +7,15 @@
 id = "SR2612"
 # start = 2026-06-19          # keep only records from this UTC day...
 # end = 2026-06-21            # ...to the end of this one
+# For the wire log's header; the OpenVDM hook fills these from OpenVDM's cruise:
+# name = "Sally Ride engineering cruise"
+# pi = "A. Scientist"
+# location = "San Diego Trough"
+# vessel_name = "Sally Ride"
+
+# [provenance]                # who to contact about the wire log
+# contact_institution = "Scripps Institution of Oceanography"
+# contact_email = "ship-tech@example.org"
 
 [winch]
 name = "CTD"                  # names the outputs

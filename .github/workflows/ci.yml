@@ -52,3 +52,29 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv run --locked pytest -n auto
+
+  openvdm-contract:
+    # The OpenVDM hook against OpenVDM's own code: how it runs the hook commands INSTALL.md
+    # documents, its update_md5_summary.py and the cruise config file it writes
+    # (tests/test_openvdm_contract.py). Against OpenVDM's 2.17 branch, as nav-qa-processing's
+    name: OpenVDM contract (2.17)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: OceanDataTools/openvdm
+          ref: "2.17"
+          path: openvdm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      # OpenVDM's own environment, as its installer makes it: venv/ in its checkout
+      - run: uv venv --python 3.12 openvdm/venv
+      - run: VIRTUAL_ENV=openvdm/venv uv pip install -r openvdm/requirements.txt
+      - run: uv sync --locked --extra openvdm
+      # OPENVDM_CONTRACT_REQUIRED: OpenVDM not found is an error here, not a skip
+      - run: uv run --locked pytest tests/test_openvdm_contract.py
+        env:
+          OPENVDM_SOURCE: ${{ github.workspace }}/openvdm
+          OPENVDM_CONTRACT_REQUIRED: "1"

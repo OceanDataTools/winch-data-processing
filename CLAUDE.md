@@ -29,17 +29,25 @@ What exists (Phase 1):
   winches, R2R format 100038), `delimited`. RR2403's one cast is `tests/data/` (its README) and
   `tests/test_rr2403.py`; the other winch formats need sample files.
 - `rawdata.py`, `casts.py`, `checks.py`, `assess.py`, `wirelog.py`, `cli.py` (`run`,
-  `formats`).
+  `formats`, and the integrations' commands), `clitools.py`, `network.py`.
+- `integrations/openvdm/` (Phase 5, done early): the `openvdm` post-transfer hook,
+  `config-from-openvdm` and `site-config`, ported from nav-qa-processing's. The site TOML's
+  `[[winch]]` tables are config TOMLs but `[cruise]` (`configs/site.example.toml`); OpenVDM's
+  cruise fills `[cruise]`. Setup is in `INSTALL.md`, whose `openvdm.yaml` block
+  `tests/test_openvdm_contract.py` runs through OpenVDM 2.17's own code (`../openvdm` with a
+  `venv/`, or `OPENVDM_SOURCE`; skipped without). Keep the hook's arguments' names: installed
+  `openvdm.yaml` files call them.
 
 ## Tooling
 
 - uv, hatchling, `src/` layout, package `winch_data_processing`, console script
   `winch-data-processing`. Python ≥3.11. Commit `uv.lock` with each dependency change.
 - Tests: `uv run pytest -n auto`; plain pytest functions on synthetic casts (`tests/conftest.py`:
-  `cast`, `lci_lines`, `write_cruise`, `CONFIG`).
+  `cast`, `lci_lines`, `write_cruise`, `CONFIG`). The OpenVDM hook's against a stand-in API
+  (`tests/test_openvdm.py`). pyyaml is the `openvdm` extra and a dev dependency.
 - Lint and format: `uv run ruff check .` and `uv run ruff format --check .` (line length 99).
 - `/data/` (raw winch data) and `/output/` are gitignored; `configs/` is the users' space but for
-  `config.example.toml`.
+  `config.example.toml` and `site.example.toml`.
 
 ## Conventions (from nav-qa-processing)
 

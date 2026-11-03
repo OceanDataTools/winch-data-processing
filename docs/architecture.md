@@ -6,8 +6,8 @@ cruise against RVSS Appendix A. It follows the conventions of its siblings
 [nav-qa-processing](https://github.com/OceanDataTools/nav-qa-processing) and
 [sbe-qa-processing](https://github.com/OceanDataTools/sbe-qa-processing): uv, hatchling, a `src/`
 layout, TOML configs, one entry point returning a result every writer takes, a project-wide
-quantity table, and (from Phase 2) a PDF report, SVG figures and a notebook that re-runs the
-assessment, and an OpenVDM hook.
+quantity table, an OpenVDM hook built as theirs are, and (from Phase 2) a PDF report, SVG figures
+and a notebook that re-runs the assessment.
 
 What Appendix A requires, and which of it the data or the config can show, is in
 [rvss-appendix-a.md](rvss-appendix-a.md).
@@ -47,7 +47,25 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 - `checks.py`: `run_checks(config, data, casts)` -> `[Check]` (decisions in its docstring).
 - `assess.py`: `assess(directory, config)` -> `WinchResult`.
 - `wirelog.py`: the wire log and checks CSVs.
-- `cli.py`: `run`, `formats`.
+- `cli.py`: `run`, `formats`, and the integrations' commands (`INTEGRATIONS`: each module's
+  `add_commands` and `EXPECTED_ERRORS`; the one place core meets them). `clitools.py`: what
+  the commands share (refusing to overwrite, writing a config TOML). `network.py`: an
+  unreachable server as a one-line `NetworkError`.
+- `config.py` also writes TOML (`dumps_toml`), for the configs the hook makes.
+
+### Integrations
+
+`integrations/` builds on the core assessment; core modules never import from it, but for
+`cli.py`. As in nav-qa-processing and sbe-qa-processing:
+
+- `integrations/openvdm/hook.py`: the site TOML (`SiteConfig`, `SiteWinch`,
+  `load_site_config`, `site_config_to_toml`), OpenVDM's cruise (`fetch_cruise_config` from its
+  API, or `load_cruise_json` from a cruise's `cruise_config.json`), the vessel block
+  (`vessel_settings`, `cruise_vessel`), `resolve` (a winch and a cruise -> `HookRun`: its
+  `Config`, the config TOML's tables, the transfer's and extra directory's paths, notes),
+  `cruise_toml`, `has_winch_changes`, `written_within`, `queue_md5_update`, `chown_tree`.
+- `integrations/openvdm/cli.py`: `openvdm` (the hook), `config-from-openvdm`, `site-config`.
+- `integrations/openvdm/site_setup.py`: `site-config`'s prompts.
 
 ## Decisions
 
@@ -63,6 +81,21 @@ raw files --formats/<reader>--> Records (per file, the data's units)
   data against it and against the kind's lowest allowed FS separately, so a cruise run at
   FS 2.5 that saw FS 2.2 fails "within the SWT" but not "the lowest FS allowed".
 - **Logging rate** is the median interval's, within 2 % (millisecond timestamps).
+- **The site TOML holds the winches.** OpenVDM knows the cruise, not the winches, so each is a
+  `[[winch]]` table holding a config TOML's tables but `[cruise]`, its keys checked against
+  core's `SCHEMA`. The hook joins it with OpenVDM's cruise into a config TOML, writes that
+  beside the outputs, and assesses from the file, so `run -c` on it repeats the run. A winch
+  that can't make a config is an error when the site TOML is read, not after a transfer.
+- **The site TOML's default is the install's `configs/site.toml`,** for the hook,
+  `config-from-openvdm` and `site-config` (as nav-qa-processing's and sbe-qa-processing's):
+  `uv sync` installs the package editable, so it finds its checkout whatever directory OpenVDM
+  runs it in. Without one (a wheel), the current directory's. A missing site TOML is an error:
+  without it there are no winches.
+- **The hook exits 0 when the assessment ran,** whatever the checks found: a tension over the
+  SWT is a finding for the wire log, not a failed hook (OpenVDM would show it as one). `run`
+  still exits 1 on a failed check.
+- **No cruise extent.** nav-qa-processing's hook sets OpenVDM's `cruiseExtent` from the track;
+  winch data has no positions, so this hook neither sets nor reads it.
 - **Peak tension is the logged maximum**, unfiltered: Appendix A asks for the peak, and the
   tables' logging rates are there so peaks are captured. A spike filter, if a sensor needs one,
   would be a per-format QC step stated in the docs, not a silent default.
@@ -81,8 +114,11 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 4. **Phase 4: the wire record across cruises.** A tension member's history (deployments since
    the last break test, cutbacks, spooling, lubrication, test results) kept beside the
    per-cruise logs, and an export for the NSF Wire Pool database's upload.
-5. **Phase 5: OpenVDM hook.** `openvdm` and `site-config` commands as nav-qa-processing's: run
-   after a winch transfer, reports into the cruise's extra directory, a site TOML per ship with
-   its winches and tension members.
+5. **Phase 5: OpenVDM hook (done, ahead of Phases 2 to 4).** `openvdm`, `config-from-openvdm`
+   and `site-config` as nav-qa-processing's: run after a winch transfer, outputs into the
+   cruise's extra directory, a site TOML per ship with its winches and tension members, tested
+   against OpenVDM 2.17's own code (`tests/test_openvdm_contract.py`). Phase 2's reports go
+   into the same extra directory when they come (`--theme`, `--execute-notebook` as
+   nav-qa-processing's hook has).
 6. **Then:** memory and speed for 20 Hz over long cruises (a month at 20 Hz is 52 M records), as
    nav-qa-processing's #157 did.

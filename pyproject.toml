@@ -10,6 +10,10 @@ dependencies = [
   "numpy >= 2.0",
 ]
 
+[project.optional-dependencies]
+# The OpenVDM hook reads openvdm.yaml
+openvdm = ["pyyaml>=6.0"]
+
 [project.scripts]
 winch-data-processing = "winch_data_processing.cli:main"
 
@@ -17,6 +21,7 @@ winch-data-processing = "winch_data_processing.cli:main"
 dev = [
   "pytest >= 8.3",
   "pytest-xdist >= 3.8.0",
+  "pyyaml >= 6.0",  # the openvdm extra, for its tests
   "ruff >= 0.8",
 ]
 

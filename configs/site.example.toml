@@ -1,0 +1,100 @@
+# Per-ship settings for the OpenVDM hook (winch-data-processing openvdm ...).
+# OpenVDM supplies the cruise ID, name, PI, location and dates. From OpenVDM 2.17,
+# openvdm.yaml's vessel block has the vessel name and contact too; these win, and
+# openvdm.yaml fills any left blank.
+# Copy to configs/site.toml (ignored by git), where the hook reads it by default, or write
+# it with `winch-data-processing site-config`. Section numbers are RVSS Appendix A's (11th edition, updated 25 June 2026).
+
+[vessel]
+name = "Roger Revelle"
+
+[openvdm]
+output_extra_directory = "WINCH_QA"      # where outputs go: an extra directory in OpenVDM
+
+[provenance]
+# contact_institution = "Scripps Institution of Oceanography"
+# contact_email = "ship-tech@example.org"
+
+# Every winch's thresholds, as in a config TOML; a winch's [winch.thresholds] win
+# [thresholds]
+# deploy_payout = 10.0
+
+# The winches: a [[winch]] table for each, holding a config TOML's tables but [cruise]
+# (configs/config.example.toml shows every key), each under the winch: [winch.tension_member],
+# [[winch.tension_member.break_test]], [[winch.sheave]], [winch.monitoring], [winch.data] and
+# [winch.thresholds]. Each winch's tables go right under its [[winch]]: TOML gives them to the
+# [[winch]] before them. Each gets its own outputs, <CRUISE>_<name>_wire_log.csv and
+# <CRUISE>_<name>_checks.csv.
+
+[[winch]]
+name = "hydro"
+transfer = "OpenRVDAS"                   # optional: only this transfer's hook assesses it
+manufacturer = "Markey"
+model = "DESH-5"
+# record_name = "hydro"                  # the name in the records (LCI-90i Name), if they share files
+
+[winch.tension_member]
+id = "NSF-CTD-1234"                      # NSF tension member identifier (A.5.2.1)
+kind = "cable"                           # cable, wire_rope or synthetic
+description = "0.322 in. 3-conductor electromechanical cable"
+nominal_breaking_load = 10000            # NBL, free to rotate
+factor_of_safety = 2.5                   # selected (A.5.1.1): sets the table (A.8.1-A.8.5)
+diameter = 0.322                         # d
+largest_wire_diameter = 0.0375           # d1
+# tension_unit = "lbf"                   # lbf, N, kN or kgf
+# diameter_unit = "in"                   # in or mm
+
+[[winch.tension_member.break_test]]      # oldest first
+date = 2025-08-01
+load = 10400
+
+[[winch.sheave]]                         # winch to water (A.8.2)
+name = "Level wind"
+tread_diameter = 16.0
+groove_width = 0.40
+
+[[winch.sheave]]
+name = "A-frame block"
+tread_diameter = 16.0
+groove_width = 0.40
+
+[winch.monitoring]
+system = "LCI-90i"
+display_rate = 10                        # [Hz]
+last_calibration = 2026-03-15
+accuracy = 2.0                           # [% of the applied load]
+alarm_tension = 3500
+
+[winch.data]
+format = "openrvdas_lci90i"              # winch-data-processing formats lists them
+files = "*hydro*.txt"                    # glob within the collection system transfer's directory
+
+[[winch]]
+name = "trawl"
+transfer = "OpenRVDAS"
+manufacturer = "Markey"
+model = "DUTW-9-11"
+
+[winch.tension_member]
+id = "NSF-TRAWL-5678"
+kind = "wire_rope"
+description = "9/16 in. 3x19 wire rope"
+nominal_breaking_load = 34000
+factor_of_safety = 3.0
+diameter = 0.5625
+
+[[winch.sheave]]
+name = "Stern block"
+tread_diameter = 24.0
+
+[winch.monitoring]
+system = "LCI-90i"
+display_rate = 10
+alarm_tension = 10000
+
+[winch.data]
+format = "openrvdas_lci90i"
+files = "*trawl*.txt"
+
+[winch.thresholds]                       # this winch's own; the others' are [thresholds]'s
+deploy_payout = 20.0

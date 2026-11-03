@@ -45,8 +45,21 @@ def stem(config: Config) -> str:
 
 def header(result: WinchResult) -> list[tuple[str, str]]:
     config, member = result.config, result.config.tension_member
-    lines = [
-        ("cruise", config.cruise_id),
+    lines = [("cruise", config.cruise_id)]
+    # From the config's [cruise] and [provenance], or OpenVDM's cruise; only when set
+    lines += [
+        (key, value)
+        for key, value in (
+            ("cruise_name", config.cruise_name),
+            ("cruise_pi", config.cruise_pi),
+            ("cruise_location", config.cruise_location),
+            ("vessel", config.vessel_name),
+            ("contact_institution", config.contact_institution),
+            ("contact_email", config.contact_email),
+        )
+        if value
+    ]
+    lines += [
         ("winch", config.winch_name),
         ("winch_manufacturer", config.winch_manufacturer),
         ("winch_model", config.winch_model),

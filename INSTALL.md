@@ -139,7 +139,7 @@ postHookCommands:
 | (no `--site-config`) | The hook reads the site TOML from step 3 at `/opt/winch-data-processing/configs/site.toml`; give `--site-config=PATH` for one elsewhere |
 | `--openvdm-config` | `openvdm.yaml` itself, for OpenVDM's web address (`siteRoot`) and `vessel` block. This path is the default; give yours if OpenVDM is installed elsewhere |
 | `--changed-files={newFiles}`, `={updatedFiles}` | The transfer's new and updated files, so a winch is assessed only when its files changed. Keep the `--changed-files=` form: OpenVDM drops a bare `{newFiles}` argument when there are none. Not in `preFinalizeCurrentCruise`, which assesses the whole cruise whatever changed |
-| `--min-interval=1h` | Skip a winch whose wire log is newer than this (`s`, `m`, `h` or `d`). Each run reads the whole cruise so far, and OpenVDM transfers every 5 minutes and runs its post hooks one at a time; a month at 20 Hz is 52 M records, about 30 s and 2 GB of memory a winch. Not in `preFinalizeCurrentCruise`, whose wire logs are the final ones |
+| `--min-interval=1h` | Skip a winch whose wire log is newer than this (`s`, `m`, `h` or `d`). Each run reads the whole cruise so far, and OpenVDM transfers every 5 minutes and runs its post hooks one at a time; a month at 20 Hz is 52 M records, about 30 s a winch (its memory follows the largest file, not the cruise). Not in `preFinalizeCurrentCruise`, whose wire logs are the final ones |
 
 A ship whose winches are in several collection systems adds an entry for each transfer, and
 gives each winch its `transfer` in the site TOML.

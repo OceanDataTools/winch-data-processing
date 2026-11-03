@@ -28,7 +28,9 @@ def result(tmp_path_factory):
 
 def test_its_records(result):
     data = result.data
-    assert len(data) == 59_681
+    assert data.records == 59_681
+    assert len(data) == 36_857  # the cast's 36,814 and the idle payout's changes
+    assert len(data.envelope) == 50 and data.envelope.tension_max.max() == 3593  # 21:50 to 22:40
     assert data.skipped == {FIXTURE.stem: {"bad checksum": 23}}
     assert data.names == {"02": 59_681}
     assert data.backwards == 0

@@ -2,13 +2,14 @@
 
 `read_fileset(directory, config)` finds the files by `[data] files`, reads each with the
 format's reader, converts tension, payout and speed (`units.py`), keeps the cruise's dates when
-the config has them, and sorts by time. A file that can't be read is recorded, not raised, so
-one bad file never stops a cruise; lines a reader couldn't use are counted by reason.
+the config has them, sorts by time, and drops the idle records `find_casts` doesn't need
+(`idle.py`), keeping the tension minute by minute. A file that can't be read is recorded, not
+raised, so one bad file never stops a cruise; lines a reader couldn't use are counted by reason.
 
 Memory: the files' records are written into one set of columns (`formats.Columns`), sized by
-the fileset's line count, so a run holds its records, 32 bytes each, plus a block's work: no
-per-file arrays, no joining them. Records are copied again only to drop those outside the
-cruise or to sort, a column at a time.
+the fileset's line count, and settled file by file, so a run holds the kept records and about a
+file's, 32 bytes each: no per-file arrays, no joining them. Files that aren't in time order
+are read again keeping every record, and sorted at the end.
 """
 
 import gzip
@@ -20,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from winch_data_processing import formats, units
+from winch_data_processing import formats, idle, units
 from winch_data_processing.config import Config
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class WinchData:
-    """The cruise's winch records, sorted by time"""
+    """The cruise's winch records, sorted by time: those `find_casts` needs (all of them with
+    `drop_idle=False`), and the tension of every record minute by minute
+    """
 
     time: np.ndarray  # datetime64[ns], UTC
     tension: np.ndarray  # [lbf]
@@ -40,8 +43,11 @@ class WinchData:
     names: Counter = field(default_factory=Counter)  # records by winch name, all files
     outside: int = 0  # records outside the cruise's dates
     backwards: int = 0  # records whose time went back from the one before, as logged
+    records: int = 0  # read within the cruise's dates, before idle ones were dropped
+    envelope: idle.Envelope | None = None  # every record's tension, minute by minute
 
     def __len__(self) -> int:
+        """The records kept"""
         return len(self.time)
 
     @property
@@ -53,13 +59,23 @@ def find_files(directory: Path, pattern: str) -> list[Path]:
     return sorted(p for p in Path(directory).glob(pattern) if p.is_file())
 
 
-def read_fileset(directory: Path | str, config: Config) -> WinchData:
+def read_fileset(directory: Path | str, config: Config, drop_idle: bool = True) -> WinchData:
+    if drop_idle:
+        try:
+            return _read(Path(directory), config, drop_idle=True)
+        except idle.OutOfOrder:
+            logger.info("the files aren't in time order: reading them again, every record kept")
+    return _read(Path(directory), config, drop_idle=False)
+
+
+def _read(directory: Path, config: Config, drop_idle: bool) -> WinchData:
     source = config.data
     reader = formats.READERS[source.format]
-    paths = find_files(Path(directory), source.files)
+    paths = find_files(directory, source.files)
     out = formats.Columns(sum(_lines(path) for path in paths))
+    settler = idle.Settler(out, config.thresholds) if drop_idle else None
     files, errors, skipped, names = [], [], {}, Counter()
-    backwards = 0
+    records = outside = backwards = 0
     for path in paths:
         start = out.size
         try:
@@ -78,32 +94,50 @@ def read_fileset(directory: Path | str, config: Config) -> WinchData:
         names.update(found.names)
         if found.skipped:
             skipped[path.name] = found.skipped
+        logger.info("%s: %d records", path.name, out.size - start)
         time = out.time[start : out.size]
         backwards += int(np.count_nonzero(time[1:] < time[:-1]))
-        logger.info("%s: %d records", path.name, out.size - start)
-    # Copied only to drop records outside the cruise or to sort, a column at a time
-    time = out.time[: out.size]
-    keep = _within(time, config)
-    outside = int(np.count_nonzero(~keep))
-    keep = keep if outside else None
-    if keep is not None:
-        time = time[keep]
-    order = None if _sorted(time) else np.argsort(time, kind="stable")
-    if order is not None:
-        time = time[order]
-    columns = []
+        outside += _keep_cruise(out, start, config)
+        _to_units(out, start, source)
+        records += out.size - start
+        if settler is not None:
+            settler.add(start)
+    if settler is not None:
+        envelope = settler.finish()
+        columns = [c[: out.size] for c in (out.time, out.tension, out.payout, out.speed)]
+    else:
+        columns = [c[: out.size] for c in (out.time, out.tension, out.payout, out.speed)]
+        if not _sorted(columns[0]):
+            order = np.argsort(columns[0], kind="stable")
+            columns = [c[order] for c in columns]
+        envelope = idle.envelope(columns[0], columns[1])
+    return WinchData(
+        *columns, files, errors, skipped, names, outside, backwards, records, envelope
+    )
+
+
+def _keep_cruise(out: formats.Columns, start: int, config: Config) -> int:
+    """Drops the file's records, `out` from `start`, outside the cruise's dates; how many"""
+    keep = _within(out.time[start : out.size], config)
+    dropped = int(np.count_nonzero(~keep))
+    if dropped:
+        for column in (out.time, out.tension, out.payout, out.speed):
+            kept = column[start : out.size][keep]
+            column[start : start + len(kept)] = kept
+        out.size -= dropped
+    return dropped
+
+
+def _to_units(out: formats.Columns, start: int, source) -> None:
+    """The file's tension, payout and speed in the project's units, in place"""
     for name, table in (
         ("tension", units.TENSION),
         ("payout", units.LENGTH),
         ("speed", units.SPEED),
     ):
-        values = getattr(out, name)[: out.size]
-        if keep is not None:
-            values = values[keep]
-        if order is not None:
-            values = values[order]
-        columns.append(units.convert(values, getattr(source, f"{name}_unit"), table, name))
-    return WinchData(time, *columns, files, errors, skipped, names, outside, backwards)
+        scale = units.factor(getattr(source, f"{name}_unit"), table, name)
+        if scale != 1.0:
+            getattr(out, name)[start : out.size] *= scale
 
 
 def _lines(path: Path) -> int:

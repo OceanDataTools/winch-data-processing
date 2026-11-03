@@ -27,10 +27,13 @@ What exists (Phase 1):
 - `formats/`: `READERS`; `lci90i` and `openrvdas_lci90i` (the LCI-90i's `RD` record and its
   byte-sum checksum, from RR2403: R2R filesets 160178 and 160181, Revelle's hydro and trawl
   winches, R2R format 100038), `delimited`. The LCI-90i reader has a fixed-width fast path
-  and a per-line path that must decide the same (`docs/architecture.md`, Decisions). RR2403's one cast is `tests/data/` (its README) and
-  `tests/test_rr2403.py`; the other winch formats need sample files.
-- `rawdata.py`, `casts.py`, `checks.py`, `assess.py`, `wirelog.py`, `cli.py` (`run`,
-  `formats`, and the integrations' commands), `clitools.py`, `network.py`.
+  and a per-line path that must decide the same (`docs/architecture.md`, Decisions). RR2403's
+  one cast is `tests/data/` (its README) and `tests/test_rr2403.py`; the other winch formats
+  need sample files.
+- `rawdata.py`, `idle.py` (drops the idle records `find_casts` doesn't need, as files are read:
+  a change to `find_casts`'s rule needs one here, and `tests/test_idle.py` to agree),
+  `casts.py`, `checks.py`, `assess.py`, `wirelog.py`, `cli.py` (`run`, `formats`, and the
+  integrations' commands), `clitools.py`, `network.py`.
 - `integrations/openvdm/` (Phase 5, done early): the `openvdm` post-transfer hook,
   `config-from-openvdm` and `site-config`, ported from nav-qa-processing's. The site TOML's
   `[[winch]]` tables are config TOMLs but `[cruise]` (`configs/site.example.toml`); OpenVDM's

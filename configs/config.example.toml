@@ -80,6 +80,8 @@ min_cast_duration = 60.0      # [s]
 cast_padding = 300.0          # [s] before and after, for the lift and the recovery
 max_wire_speed = 300.0        # [m min-1] faster payout steps are counter resets, not deployments
 max_logging_gap = 5.0         # [s] longest gap in a deployment's tension record
+slow_haul_halt = 30.0         # [s] the payout not increasing this long is a halt (Table A.8.4)
+slow_haul_allowance = 0.1     # how far over Table A.8.4's ~500 m between halts is allowed
 
 # The reports' look (also a theme file given with --theme, these keys at its top level; this
 # table applies over it). The same keys as nav-qa-processing's and sbe-qa-processing's.

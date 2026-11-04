@@ -61,7 +61,7 @@ to 2.5; Table A.8.2 requires them before FS 2.8), and this tool follows the adop
 | Wire log: NSF identifier, winch and system manufacturer, sheave train (D and w for each sheave) | A.5.2.1, A.5.3.1 | config | the wire log's header |
 | Wire log: spooling operations and cutbacks, lubrication, TDR / resistance / OTDR results, terminations and proof tests | A.5.2.1 | operator's records | not in the winch's data |
 | Wire log transfers with the tension member; the NSF Wire Pool database recommended | Tables A.8.1–A.8.5 | operator | the wire log is a file to upload |
-| Slow-haul checks every ~500 m once FS 2.0 is passed | Table A.8.4 | data | planned: a deployment's halts below FS 2.0 (Phase 2) |
+| Slow-haul checks every ~500 m once FS 2.0 is reached: "halting a deployment at regular intervals (~ 500 m) and conducting a slow haul until the nominal and peak tensions are established and verified" | Table A.8.4 | data (the halts); operator (the tensions verified) | Slow-haul checks below FS 2.0: a halt (the payout not growing for 30 s, a slow haul included) at least every 550 m paid out from where FS 2.0 was reached to the deepest payout |
 | Estimated Maximum Tension within the SWT before a deployment | A.8.1 | operator | not data: a plan, A.9's examples |
 | Termination plan, proof tests | A.5.1.2 (by 2028-01-01) | operator's records | — |
 | Operator deemed or certified competent | Tables A.8.1–A.8.5 | operator's records | — |

@@ -10,11 +10,21 @@ Decisions (inferred; Appendix A doesn't say how to measure them):
   for timestamps rounded to the millisecond (20 Hz logged as 0.050 s and 0.051 s).
 - Calibration and break test intervals are counted back from the last record's date (or the
   cruise's end, or today, without records), whole calendar months.
+- Slow-haul checks (Table A.8.4: "halting a deployment at regular intervals (~ 500 m) and
+  conducting a slow haul" once FS 2.0 is reached) apply when the selected FS is in Table A.8.4.
+  In each deployment they start at the first record of its deployed stretch, paying out, where
+  tension reaches FS 2.0; from there to the deepest payout, a halt is the payout reached so far
+  not growing by a whole metre for `slow_haul_halt` (30 s): the winch stopped, or hauling in,
+  so a slow haul counts. Between where FS 2.0 was reached, each halt and the deepest payout,
+  the wire goes at most 500 m and `slow_haul_allowance` (10 %, for the "~"). Whether the slow
+  haul established the nominal and peak tensions is the operator's to show, not the data's; a
+  logging gap that long looks like a halt (Gaps in the tension record flags it).
 """
 
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
+from itertools import pairwise
 
 import numpy as np
 
@@ -52,6 +62,7 @@ def run_checks(config: Config, data: WinchData, casts: list[Cast]) -> list[Check
         _within_swt(config, data, casts),
         _kind_minimum(config, data, casts),
         _elastic_limit(config, data, casts),
+        _slow_haul(config, data, casts),
         _logging_rate(table, casts),
         _logging_gaps(config, casts),
         _alarm_setting(config, table),
@@ -147,6 +158,106 @@ def _elastic_limit(config, data, casts) -> Check:
         section,
         Status.FAIL,
         f"beyond FS {limit:g}: the length must be cut back or retired: {_listed(found)}",
+    )
+
+
+@dataclass(frozen=True)
+class SlowHauls:
+    """A deployment's paying out from where tension reached FS 2.0: the payout there, at each
+    halt, and the deepest [m]
+    """
+
+    reached: float
+    halts: tuple[float, ...]
+    deepest: float
+
+    @property
+    def stretches(self) -> list[tuple[float, float]]:
+        """(from, to) [m] of each stretch paid out without a halt"""
+        points = (self.reached, *self.halts, self.deepest)
+        return list(pairwise(points))
+
+    @property
+    def longest(self) -> tuple[float, float]:
+        return max(self.stretches, key=lambda s: s[1] - s[0])
+
+
+def slow_hauls(data: WinchData, cast: Cast, limit: float, halt: float) -> SlowHauls | None:
+    """The cast's halts once tension reached `limit` [lbf] paying out, a halt being `halt` [s]
+    or longer before the payout reached so far grows another whole metre; None if it didn't
+    reach `limit` before its deepest payout
+    """
+    records = slice(cast.deployed_start, cast.deployed_stop)
+    payout, tension = data.payout[records], data.tension[records]
+    if not len(payout) or np.isnan(payout).all():
+        return None
+    deepest = int(np.nanargmax(payout))
+    over = np.flatnonzero(tension[: deepest + 1] >= limit)
+    if not len(over):
+        return None
+    first = int(over[0])
+    times = data.time[records][first : deepest + 1]
+    reached = np.fmax.accumulate(payout[first : deepest + 1])
+    metres = np.floor(reached)
+    new = np.flatnonzero(np.concatenate(([True], metres[1:] != metres[:-1])))
+    waits = np.diff(times[new]) / np.timedelta64(1, "s")
+    halts = reached[new[:-1][waits >= halt]]
+    return SlowHauls(float(reached[0]), tuple(float(h) for h in halts), float(reached[-1]))
+
+
+def _metres(value: float) -> str:
+    return f"{value:,.0f} m"
+
+
+def _slow_haul(config: Config, data: WinchData, casts) -> Check:
+    member, thresholds = config.tension_member, config.thresholds
+    name, section = "Slow-haul checks below FS 2.0", "Table A.8.4"
+    if member.table is not rvss.A_8_4:
+        return Check(
+            name,
+            section,
+            Status.NA,
+            f"Table A.8.4 only (wire rope from FS {rvss.SLOW_HAUL_FS:g} to 1.5); the selected FS "
+            f"{member.factor_of_safety:g} is in {member.table.name}",
+        )
+    if not casts:
+        return Check(name, section, Status.NA, "no deployments")
+    if not data.has_payout:
+        return Check(name, section, Status.WARN, "no payout in the data: halts can't be found")
+    limit = member.assigned_breaking_load / rvss.SLOW_HAUL_FS
+    found = [
+        (cast, hauls)
+        for cast in casts
+        if (hauls := slow_hauls(data, cast, limit, thresholds.slow_haul_halt)) is not None
+    ]
+    if not found:
+        return Check(
+            name, section, Status.NA, f"no deployment reached FS {rvss.SLOW_HAUL_FS:g} paying out"
+        )
+    allowed = rvss.SLOW_HAUL_INTERVAL * (1 + thresholds.slow_haul_allowance)
+    long = [(c, h.longest) for c, h in found if h.longest[1] - h.longest[0] > allowed]
+    if long:
+        listed = "; ".join(
+            f"cast {c.number}: {_metres(end - start)} from {_metres(start)} without a halt"
+            for c, (start, end) in long
+        )
+        return Check(
+            name,
+            section,
+            Status.FAIL,
+            f"{listed} (a halt and slow haul every ~500 m, at most {_metres(allowed)})",
+        )
+    listed = "; ".join(
+        f"cast {c.number}: from {_metres(h.reached)}, {len(h.halts)} halts, longest "
+        f"{_metres(h.longest[1] - h.longest[0])}"
+        for c, h in found
+    )
+    return Check(
+        name,
+        section,
+        Status.PASS,
+        f"a halt or slow haul every {_metres(allowed)} or less past FS {rvss.SLOW_HAUL_FS:g}: "
+        f"{listed}; the slow hauls' tensions are the operator's to verify",
     )
 
 

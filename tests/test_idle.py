@@ -84,7 +84,8 @@ def assert_as_if_every_record_kept(directory, config) -> None:
     a, b = find_casts(dropped, config.thresholds), find_casts(full, config.thresholds)
 
     def figures(cast):
-        return {k: v for k, v in dataclasses.asdict(cast).items() if k not in ("start", "stop")}
+        indices = ("start", "stop", "deployed_start", "deployed_stop")  # into each's records
+        return {k: v for k, v in dataclasses.asdict(cast).items() if k not in indices}
 
     assert [figures(c) for c in a] == [figures(c) for c in b]
     assert run_checks(config, dropped, a) == run_checks(config, full, b)

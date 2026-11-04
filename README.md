@@ -96,6 +96,7 @@ and table, the winch, the sheave train with each D/d), then a row a deployment:
 | Peak tension within the elastic limit (cable FS 1.8, wire rope 1.33) | A.5.6 | data |
 | Tension logging rate (3 Hz, or 20 Hz) | Tables A.8.2–A.8.5 | data |
 | Gaps in the tension record | Tables A.8.2–A.8.5 | data |
+| Slow-haul checks below FS 2.0 (a halt every ~500 m paid out, Table A.8.4 only) | Table A.8.4 | data |
 | Tension alarm setting | Tables A.8.2–A.8.5 | config |
 | Alarm conditions in the logged data | Tables A.8.2–A.8.5 | operator |
 | Tension display refresh rate | Tables A.8.2–A.8.5 | config |
@@ -157,7 +158,7 @@ every key. Unknown keys are an error saying where they belong.
 | `[[sheave]]` | `name`, `tread_diameter` (D), `groove_width` (w) |
 | `[monitoring]` | `system`, `display_rate` [Hz], `last_calibration`, `accuracy` [%], `alarm_tension` |
 | `[data]` | `format`, `files` (glob), `time` (`logger` or `instrument`), `tension_unit`, `payout_unit`, `speed_unit`, `delimiter`, `header_lines`, `time_format`; `[data.columns]` `time`, `tension`, `payout`, `speed` |
-| `[thresholds]` | `deploy_payout` [m], `merge_gap` [s], `min_cast_duration` [s], `cast_padding` [s], `max_wire_speed` [m min-1], `max_logging_gap` [s] |
+| `[thresholds]` | `deploy_payout` [m], `merge_gap` [s], `min_cast_duration` [s], `cast_padding` [s], `max_wire_speed` [m min-1], `max_logging_gap` [s], `slow_haul_halt` [s], `slow_haul_allowance` (a fraction of 500 m) |
 | `[theme]` | The reports' look (the PDF, figures and notebook): `page_size`, `margin`, `font`, `bold_font`, `font_scale`, `figure_font_scale`, `logo`, `organization`, `footer`, `palette` (`default`, `colorblind`); `[theme.colors]` (`primary` the tension, `secondary` the limits). The same keys as nav-qa-processing's, so one theme file (`--theme`) serves both |
 
 ## OpenVDM

@@ -154,14 +154,22 @@ deployments into `RECORDS_DIR/<NSF-ID>/`:
 | File | What it holds |
 |---|---|
 | `deployments.csv` | Every deployment of every cruise merged in, with the wire log's columns and each row's cruise, vessel and winch. Merging a cruise again replaces its rows, so the hook can merge after every run |
-| `tension_member.toml` | The tension member as the latest merged cruise's config gives it, with its break tests |
+| `tension_member.toml` | The tension member as the latest merged cruise's config gives it, and every break test a merged config has listed |
+| `events.toml` | Yours, edited by hand and never written by the tool: break tests, spooling, cutbacks, lubrication, test results (TDR, resistance, OTDR, optical loss) and terminations with their proof tests, each dated. [configs/events.example.toml](configs/events.example.toml) shows every key; it's checked when read, as a config is. A record can start with it, before its first cruise |
+
+The record's break tests are `tension_member.toml`'s and `events.toml`'s together, and with
+`--wire-record` a run's checks use them with its config's: a break test entered once in
+`events.toml` sets the ABL and the break test interval of every later cruise. A date with two
+different loads is an error naming both.
 
 `wire-record report RECORDS_DIR/<NSF-ID>` prints and writes (`<NSF-ID>_wire_record.pdf`) the
+tension member and its break tests; its maintenance (the length after the cutbacks since the
+last spooling, the last lubrication and termination, each kind of test's latest result); the
 deployments since the last break test and over the record (number, hours, deepest payout,
-highest tension, lowest FS), each cruise's, and every deployment since the last break test.
-"Since" counts deployments that started on or after the test's date: a test has a date, not a
-time. The record is plain files: copy its directory with the tension member when it moves.
-Cutbacks, spooling, lubrication, test results and terminations are to come (Phase 4).
+highest tension, lowest FS), each cruise's, and every deployment since the last break test; and
+the events by date. "Since" counts deployments that started on or after the test's date: a test
+has a date, not a time. The record is plain files: copy its directory with the tension member
+when it moves.
 
 ## Configuration
 

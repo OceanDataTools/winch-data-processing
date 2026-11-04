@@ -1,8 +1,10 @@
 """The wire record's report (`wire-record report`): what A.5.2.1 asks across cruises, as text and
-as `<NSF-ID>_wire_record.pdf`: the tension member and its break tests; the deployments since
-the last break test and over the record (number, hours, deepest payout, highest tension, lowest
-FS); each cruise's; and every deployment since the last break test. Built with the cruise
-report's helpers (`pdf_report.py`); written invariant, so identical for the same record.
+as `<NSF-ID>_wire_record.pdf`: the tension member and its break tests; its maintenance (the
+length after cutbacks, the last lubrication, each kind of test's latest result, the last
+termination); the deployments since the last break test and over the record (number, hours,
+deepest payout, highest tension, lowest FS); each cruise's; every deployment since the last
+break test; and the operator's events by date. Built with the cruise report's helpers
+(`pdf_report.py`); written invariant, so identical for the same record.
 """
 
 from collections import defaultdict
@@ -67,6 +69,7 @@ def summary(record: WireRecord) -> list[str]:
         )
     if record.last_break_test is None:
         lines.append("  no break test in the record: every deployment counts as since one")
+    lines += [f"  {what}: {value}" for what, value in maintenance(record)]
     return lines
 
 
@@ -83,9 +86,34 @@ def _member(record: WireRecord) -> list[list[str]]:
         )
     if "factor_of_safety" in member:
         rows.append(["Factor of safety, selected", f"{member['factor_of_safety']:g}"])
-    for test in member.get("break_test", []):
-        rows.append(["Break test", f"{test['date']}: {q.TENSION.format(test['load'])} lbf"])
+    for test in record.break_tests:
+        rows.append(["Break test", f"{test.date}: {q.TENSION.format(test.load)} lbf"])
     return [row for row in rows if row[1]]
+
+
+def maintenance(record: WireRecord) -> list[list[str]]:
+    """(what, its latest) for the operator's events, by kind; none without events"""
+    if not record.events:
+        return []
+    length, cut = record.length()
+    spooled = record.latest("spooling")
+    rows = [
+        [
+            "Length",
+            f"{length:,.1f} m: {spooled.values['length']:,.1f} m spooled on {spooled.date}, "
+            f"{cut:,.1f} m cut back since"
+            if spooled
+            else f"unknown without a spooling; {cut:,.1f} m cut back in all",
+        ]
+    ]
+    for kind, what in (("lubrication", "Last lubrication"), ("termination", "Last termination")):
+        latest = record.latest(kind)
+        rows.append([what, f"{latest.date}: {latest.describe()}" if latest else "none recorded"])
+    tests = {e.values["kind"]: e for e in record.events if e.kind == "test"}  # the latest each
+    rows += [
+        [f"Last test: {kind}", f"{e.date}: {e.values['result']}"] for kind, e in tests.items()
+    ]
+    return rows
 
 
 def _cruises(deployments: list[Deployment]) -> list[list[str]]:
@@ -131,15 +159,28 @@ def write_report(record: WireRecord, path: Path | str, theme: Theme = DEFAULT_TH
         canvas.drawRightString(lay.page[0] - lay.margin, 0.4 * inch, f"page {document.page}")
         canvas.restoreState()
 
+    upkeep = (
+        [
+            KeepTogether(
+                [
+                    Paragraph("Maintenance", lay.heading),
+                    table(lay, None, maintenance(record), [0.35, 0.65]),
+                ]
+            ),
+            Spacer(1, 10),
+        ]
+        if record.events
+        else []
+    )
     since = record.since_last_break_test()
     story = [
         Paragraph(escape(title), lay.title),
         Paragraph(
             escape(
                 "The tension member's history log across cruises (RVSS Appendix A, A.5.2.1), "
-                f"from {record.directory.name}/: the deployments of every cruise merged in. "
-                "Cutbacks, spooling, lubrication, test results and terminations are the "
-                f"operator's records. Written by winch-data-processing {__version__}."
+                f"from {record.directory.name}/: the deployments of every cruise merged in, and the "
+                "operator's events (events.toml): break tests, cutbacks, spooling, lubrication, "
+                f"test results and terminations. Written by winch-data-processing {__version__}."
             ),
             lay.small,
         ),
@@ -151,6 +192,7 @@ def write_report(record: WireRecord, path: Path | str, theme: Theme = DEFAULT_TH
             ]
         ),
         Spacer(1, 10),
+        *upkeep,
         KeepTogether(
             [
                 Paragraph("Deployments", lay.heading),
@@ -212,6 +254,17 @@ def write_report(record: WireRecord, path: Path | str, theme: Theme = DEFAULT_TH
                 ],
                 _deployment_rows(since),
                 [0.13, 0.1, 0.05, 0.2, 0.12, 0.13, 0.15, 0.12],
+            ),
+        ]
+    if record.events:
+        story += [
+            Spacer(1, 10),
+            Paragraph("Events", lay.heading),
+            table(
+                lay,
+                ["Date", "Event", "Details"],
+                [[str(e.date), e.label, e.describe()] for e in record.events],
+                [0.14, 0.14, 0.72],
             ),
         ]
     document = SimpleDocTemplate(

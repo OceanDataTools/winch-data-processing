@@ -32,7 +32,7 @@ from winch_data_processing.rvss import StandardError
 from winch_data_processing.theme import ThemeError
 from winch_data_processing.units import UnitError
 from winch_data_processing.wirelog import stem
-from winch_data_processing.wirerecord import WireRecordError
+from winch_data_processing.wirerecord import WireRecordError, with_break_tests
 
 logger = logging.getLogger(__name__)
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
@@ -125,7 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help=(
             "merge the deployments into the tension member's wire record, "
-            "RECORDS_DIR/<NSF-ID>/, replacing this cruise's earlier ones"
+            "RECORDS_DIR/<NSF-ID>/, replacing this cruise's earlier ones; the checks use the "
+            "record's break tests too"
         ),
     )
     run.set_defaults(handler=_run)
@@ -185,6 +186,8 @@ def _run(args) -> int:
 
     refuse_overwrite(report_paths(config, args.output).values(), args.force)
     theme = resolve_theme(args.theme, config)  # before the work: a bad theme fails first
+    if args.wire_record:
+        config = with_break_tests(config, args.wire_record)  # the record's, entered once
     result = assess(args.data_dir, config)
     for error in result.data.errors:
         print(f"unread: {error}", file=sys.stderr)

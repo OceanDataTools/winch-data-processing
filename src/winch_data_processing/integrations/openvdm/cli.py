@@ -153,7 +153,14 @@ def _openvdm_winch(args: argparse.Namespace, run, site_root: str) -> None:
     # repeats exactly this run
     snapshot = run.output_dir / f"{name}_config.toml"
     snapshot.write_text(openvdm.cruise_toml(run, _source(args, site_root)))
-    result = assess(run.fileset_dir, load_config(snapshot))
+    config = load_config(snapshot)
+    if args.wire_record:
+        # The record's break tests too: `run -c` on the snapshot with the same --wire-record
+        # repeats this run
+        from winch_data_processing.wirerecord import with_break_tests
+
+        config = with_break_tests(config, args.wire_record)
+    result = assess(run.fileset_dir, config)
     for error in result.data.errors:
         print(f"  unread: {error}")
     reports = write_reports(
@@ -343,7 +350,7 @@ def add_commands(commands) -> None:
         help=(
             "merge each winch's deployments into its tension member's wire record, "
             "RECORDS_DIR/<NSF-ID>/, replacing the cruise's earlier ones (outside the cruise, "
-            "so not in its MD5 summary)"
+            "so not in its MD5 summary); the checks use the record's break tests too"
         ),
     )
     # OpenVDM shows the hook's failure message, so every error is one line (cli.main)

@@ -143,7 +143,7 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 
 ## Plan
 
-1. **Phase 1 (this):** scaffold, Appendix A as data, config, LCI-90i and delimited readers,
+1. **Phase 1 (done):** scaffold, Appendix A as data, config, LCI-90i and delimited readers,
    deployments, the wire log, the checks, `run`. Tests on synthetic casts.
 2. **Phase 2: reports (done).** `plots.py` (the cruise's timeline from the kept records and
    the minute envelope; tension against payout with the limits; the FS histogram; each
@@ -154,8 +154,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 3. **Phase 3: more formats.** MOTU, Markey and DynaCon control systems' logs, and the LCI-90i
    compared with a real unit's output; alarm conditions where a format logs them. Needs sample
    files from ships. Each format documented as nav-qa-processing's `formats/definitions/`.
-4. **Phase 4: the wire record across cruises.** A.5.2.1's history log, one per tension member
-   for its service life, transferring with it: what no single cruise's wire log can hold.
+4. **Phase 4: the wire record across cruises (steps 1 to 3 done).** A.5.2.1's history log, one
+   per tension member for its service life, transferring with it: what no single cruise's wire
+   log can hold.
    - **Plain files, by NSF identifier** (`records/<NSF-ID>/`): `deployments.csv`, every
      deployment from every cruise, merged from the wire logs (`run` and the hook with
      `--wire-record DIR`; re-running a cruise replaces its rows); `events.toml`, the operator's

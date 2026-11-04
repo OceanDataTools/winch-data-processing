@@ -17,7 +17,7 @@ file doesn't settle a structural or tooling question, do what nav-qa-processing 
 `CLAUDE.md`, `pyproject.toml` and `src/nav_qa_processing/` (`quantities.py`, `config.py`,
 `cli.py`, `reports.py`, `pdf_report.py`, `notebook.py`, `integrations/openvdm/`).
 
-What exists (Phases 1 and 2):
+What exists (Phases 1, 2 and 4's first steps):
 - `rvss.py`: Appendix A as data (`Kind`, `Table` A.8.1 to A.8.5, `MIN_FS`, `ELASTIC_LIMIT_FS`,
   `table_for`). Change a requirement here, citing its section, never in a check.
 - `config.py`: the config TOML (`configs/config.example.toml` shows every key; add a new key
@@ -43,8 +43,8 @@ What exists (Phases 1 and 2):
   invariant, the notebook's cell IDs by position), `notebook.py` with `notebook_template.py` (Ruff
   checks the template's code; `tests/test_notebook.py` executes it). pypdf, nbclient and ipykernel
   are dev dependencies; matplotlib, ReportLab and nbformat load only when reports are written.
-- Phase 4 (in progress, `docs/architecture.md`'s plan): `wirerecord.py`, the wire record
-  (`RECORDS_DIR/<NSF-ID>/deployments.csv` and `tension_member.toml`, plain files read and
+- Phase 4 (steps 1 to 3 done, the rest in the issues; `docs/architecture.md`'s plan):
+  `wirerecord.py`, the wire record (`RECORDS_DIR/<NSF-ID>/deployments.csv` and `tension_member.toml`, plain files read and
   written only there; `events.toml`, the operator's, read and checked there, never written),
   merged by `run --wire-record` and the hook, whose checks then use the record's break tests
   (`with_break_tests`); `record_report.py`, `wire-record report`.
@@ -58,7 +58,8 @@ What exists (Phases 1 and 2):
 
 - `docs/examples/` has RR2403's outputs (the PDF report, the wire log and checks, the timeline and
   cast figures, a wire record and its report, with illustrative events). When a change alters
-  the reports, rebuild them with the commands in `docs/examples/README.md`, from the repo root.
+  the reports, rebuild them with the commands in `docs/examples/README.md`, from the repo root;
+  `tests/test_examples.py` fails while the text outputs are stale.
 
 ## Tooling
 

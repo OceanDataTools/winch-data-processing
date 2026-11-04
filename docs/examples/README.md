@@ -9,7 +9,7 @@ sheaves and monitoring system aren't known either, so their checks warn.
 
 | Directory | Command | Files |
 |---|---|---|
-| [`run/`](run/) | `run`, with `--wire-record`, as the OpenVDM hook writes it | [the PDF report](run/RR2403_hydro_report.pdf), [the wire log](run/RR2403_hydro_wire_log.csv), [the checks](run/RR2403_hydro_checks.csv), [the timeline](run/RR2403_hydro_plots/timeline.svg) and [the cast](run/RR2403_hydro_plots/cast_001.svg) |
+| [`run/`](run/) | `run`, with `--wire-record` | [the PDF report](run/RR2403_hydro_report.pdf), [the wire log](run/RR2403_hydro_wire_log.csv), [the checks](run/RR2403_hydro_checks.csv), [the timeline](run/RR2403_hydro_plots/timeline.svg) and [the cast](run/RR2403_hydro_plots/cast_001.svg) |
 | [`wire-record/`](wire-record/) | `wire-record report`, on the record `run` merged the cast into | [the wire record's report](wire-record/ASSUMED-HYDRO_wire_record.pdf), and the record's files: [`deployments.csv`](wire-record/deployments.csv), [`tension_member.toml`](wire-record/tension_member.toml) and [`events.toml`](wire-record/events.toml) |
 
 The wire record's `events.toml` is **illustrative**: made-up spooling, break test, lubrication,
@@ -29,6 +29,7 @@ From a clone, after a change to the reports, from the repository's root (so the 
 data by its relative path, `data/RR2403_cast`). The cast is committed in `tests/data/`:
 
 ```bash
+rm -rf data/RR2403_cast
 mkdir -p data/RR2403_cast
 xz -dc tests/data/RR2403_winch_lci90i_hydro-2024-04-06_cast.txt.xz \
     > data/RR2403_cast/RR2403_winch_lci90i_hydro-2024-04-06_cast.txt
@@ -45,4 +46,5 @@ cp output/examples/records/ASSUMED-HYDRO/{deployments.csv,tension_member.toml,AS
 ```
 
 Every output is identical run to run, so a rebuild changes only what the change to the reports
-changed.
+changed. `tests/test_examples.py` rebuilds the text outputs (the wire log, the checks,
+`deployments.csv` and `tension_member.toml`) and fails when they differ from these.

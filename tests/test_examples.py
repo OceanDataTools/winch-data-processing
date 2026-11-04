@@ -1,8 +1,11 @@
+import lzma
 import re
+import shutil
 import tomllib
 
 from conftest import EXAMPLE, ROOT
 
+from winch_data_processing.cli import main
 from winch_data_processing.config import SCHEMA, Thresholds, load_config
 from winch_data_processing.wirerecord import load
 
@@ -38,12 +41,36 @@ def test_the_readme_names_every_config_table():
             assert f"[{path[0]}]" in readme, path
 
 
+EXAMPLES = ROOT / "docs" / "examples"
+CAST = ROOT / "tests" / "data" / "RR2403_winch_lci90i_hydro-2024-04-06_cast.txt.xz"
+
+
 def test_docs_examples_config_and_wire_record_are_valid():
-    """docs/examples: its config, and its wire record's files (rebuilt per its README)"""
-    examples = ROOT / "docs" / "examples"
+    """docs/examples: its config, and its wire record's files"""
+    examples = EXAMPLES
     config = load_config(examples / "RR2403_hydro.toml")
     assert config.tension_member.id == "ASSUMED-HYDRO"
     record = load(examples / "wire-record")
     assert [d.cruise for d in record.deployments] == ["RR2403"]
     assert str(record.last_break_test) == "2023-11-15"
-    assert all("illustrative" in e.describe() for e in record.events)
+    assert record.events
+    assert all(e.values.get("note", "").startswith("illustrative") for e in record.events)
+
+
+def test_docs_examples_text_outputs_are_what_the_code_writes(tmp_path):
+    """Rebuilt as docs/examples/README.md does; the PDFs and SVGs are left to the rebuild"""
+    data = tmp_path / "RR2403_cast"
+    data.mkdir()
+    (data / CAST.stem).write_bytes(lzma.decompress(CAST.read_bytes()))
+    records = tmp_path / "records"
+    (records / "ASSUMED-HYDRO").mkdir(parents=True)
+    shutil.copy(EXAMPLES / "wire-record" / "events.toml", records / "ASSUMED-HYDRO")
+    run = tmp_path / "run"
+    config = EXAMPLES / "RR2403_hydro.toml"
+    command = ["run", str(data), "-c", str(config), "-o", str(run), "--wire-record", str(records)]
+    assert main(command) == 0
+    for name in ("RR2403_hydro_wire_log.csv", "RR2403_hydro_checks.csv"):
+        assert (run / name).read_text() == (EXAMPLES / "run" / name).read_text(), name
+    for name in ("deployments.csv", "tension_member.toml"):
+        written = (records / "ASSUMED-HYDRO" / name).read_text()
+        assert written == (EXAMPLES / "wire-record" / name).read_text(), name

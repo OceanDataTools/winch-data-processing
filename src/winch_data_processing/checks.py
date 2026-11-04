@@ -2,7 +2,8 @@
 
 Each `Check` names the requirement it tests and its section, and is pass, fail, warn, info or
 n/a. Fail means the data or config shows the requirement wasn't met; warn, that it can't be
-shown met (something's missing from the config); info, what only the operator's records can
+shown met (something's missing from the config), or that the data shows what the operator
+should look into (tension past the alarm point); info, what only the operator's records can
 show. The table the selected FS falls in (A.8.1 to A.8.5) sets which checks apply.
 
 Decisions (inferred; Appendix A doesn't say how to measure them):
@@ -19,6 +20,13 @@ Decisions (inferred; Appendix A doesn't say how to measure them):
   the wire goes at most 500 m and `slow_haul_allowance` (10 %, for the "~"). Whether the slow
   haul established the nominal and peak tensions is the operator's to show, not the data's; a
   logging gap that long looks like a halt (Gaps in the tension record flags it).
+- Tension past the alarm point warns: the tables require an alarm before their FS
+  (`rvss.Table.alarm_fs`), not that tension stay below it, so a crossing is for the operator to
+  look into (did the alarm sound?), not a fail. The point is the lower of
+  `[monitoring] alarm_tension` and ABL / the table's alarm FS, so an alarm set too high (Tension
+  alarm setting fails) doesn't hide the table's. In each deployment, a spell above starts at its
+  first sample above and ends at the next sample at or below it (or the deployment's last
+  record): the time above is those spells' total.
 """
 
 from dataclasses import dataclass
@@ -31,7 +39,12 @@ import numpy as np
 from winch_data_processing import rvss
 from winch_data_processing.casts import Cast
 from winch_data_processing.config import Config
-from winch_data_processing.quantities import FACTOR_OF_SAFETY, LOGGING_RATE, TENSION
+from winch_data_processing.quantities import (
+    FACTOR_OF_SAFETY,
+    LOGGING_RATE,
+    TENSION,
+    format_time,
+)
 from winch_data_processing.rawdata import WinchData
 
 RATE_TOLERANCE = 0.02
@@ -66,6 +79,7 @@ def run_checks(config: Config, data: WinchData, casts: list[Cast]) -> list[Check
         _logging_rate(table, casts),
         _logging_gaps(config, casts),
         _alarm_setting(config, table),
+        _alarm_crossings(config, data, casts),
         _alarms_logged(table),
         _display_rate(config, table),
         _calibration(config, table, on),
@@ -300,6 +314,72 @@ def _alarm_setting(config: Config, table: rvss.Table) -> Check:
         return Check(name, section, Status.WARN, f"no [monitoring] alarm_tension; must be {must}")
     status = Status.PASS if alarm <= limit else Status.FAIL
     return Check(name, section, status, f"{TENSION.format(alarm)} lbf; must be {must}")
+
+
+def alarm_point(config: Config) -> tuple[float, str] | None:
+    """(tension [lbf], what it is) the checks take as the alarm point; None for a table without
+    alarms
+    """
+    abl = config.tension_member.assigned_breaking_load
+    table = config.tension_member.table
+    if table.alarm_fs is None:
+        return None
+    point = abl / table.alarm_fs
+    alarm = config.monitoring.alarm_tension
+    if alarm is not None and alarm < point:
+        return alarm, f"the alarm setting, {TENSION.format(alarm)} lbf (FS {abl / alarm:.2f})"
+    return (
+        point,
+        f"{table.name}'s alarm point, {TENSION.format(point)} lbf (FS {table.alarm_fs:g})",
+    )
+
+
+@dataclass(frozen=True)
+class Crossings:
+    """A deployment's spells above a tension: when the first began, how many, and their total
+    time [s]
+    """
+
+    first: np.datetime64
+    spells: int
+    seconds: float
+
+
+def crossings(data: WinchData, cast: Cast, limit: float) -> Crossings | None:
+    """The cast's spells above `limit` [lbf], each from its first sample above to the next at or
+    below it; None if it never went above
+    """
+    over = data.tension[cast.start : cast.stop] > limit
+    if not over.any():
+        return None
+    times = data.time[cast.start : cast.stop]
+    edges = np.diff(over.astype(np.int8), prepend=np.int8(0), append=np.int8(0))
+    starts, ends = np.flatnonzero(edges == 1), np.flatnonzero(edges == -1)
+    ends = np.minimum(ends, len(times) - 1)  # a spell to the last record ends there
+    seconds = float(np.sum((times[ends] - times[starts]) / np.timedelta64(1, "s")))
+    return Crossings(times[starts[0]], len(starts), seconds)
+
+
+def _alarm_crossings(config: Config, data: WinchData, casts) -> Check:
+    table = config.tension_member.table
+    name, section = "Tension below the alarm point", table.name
+    point = alarm_point(config)
+    if point is None:
+        return Check(name, section, Status.NA, f"{table.name} requires no alarms")
+    if not casts:
+        return Check(name, section, Status.NA, "no deployments")
+    limit, what = point
+    found = [(c, x) for c in casts if (x := crossings(data, c, limit)) is not None]
+    if not found:
+        return Check(name, section, Status.PASS, f"every deployment below {what}")
+    listed = "; ".join(
+        f"cast {c.number}: {x.seconds:,.1f} s above in {x.spells} "
+        f"{'spell' if x.spells == 1 else 'spells'} from {format_time(x.first, 0)}, peak "
+        f"{TENSION.format(c.max_tension)} lbf (FS "
+        f"{FACTOR_OF_SAFETY.format(min_fs(config, c.max_tension))})"
+        for c, x in found
+    )
+    return Check(name, section, Status.WARN, f"above {what}: {listed}; did the alarm sound?")
 
 
 def _alarms_logged(table: rvss.Table) -> Check:

@@ -5,7 +5,9 @@ What winch-data-processing writes, for one real cast: **RR2403**, R/V Roger Reve
 664.5 m until zeroed, a cast to 500 m, and the recovery (R2R fileset 160178, cut to 50 minutes in
 `tests/data/`). The cruise is R2R's; the tension member is **assumed**, since R2R doesn't record
 it: a typical 0.322 in. EM cable at FS 2.5 ([`RR2403_hydro.toml`](RR2403_hydro.toml)). The
-sheaves and monitoring system aren't known either, so their checks warn.
+sheaves and monitoring system aren't known either, so their checks warn; and the cast's peak,
+3,593 lbf, went past Table A.8.2's alarm point (3,571 lbf, FS 2.8) for 0.1 s, so that check warns
+too.
 
 | Directory | Command | Files |
 |---|---|---|

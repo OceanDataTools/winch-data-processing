@@ -47,6 +47,8 @@ class Cast:
     samples: int
     logging_rate: float  # [Hz], the median interval's
     longest_gap: float  # [s]
+    deployed_start: int = 0  # the deployed stretch's records (payout over deploy_payout), in
+    deployed_stop: int = 0  # `WinchData`: start to stop (exclusive), within start to stop
 
     @property
     def duration(self) -> float:  # [s]
@@ -157,4 +159,6 @@ def _cast(data: WinchData, seconds, number: int, run, around) -> Cast:
         samples=stop - start,
         logging_rate=1 / interval if interval > 0 else np.nan,
         longest_gap=float(steps.max()) if len(steps) else np.nan,
+        deployed_start=run[0],
+        deployed_stop=run[1],
     )

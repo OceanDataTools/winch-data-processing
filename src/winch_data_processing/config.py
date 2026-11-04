@@ -127,6 +127,8 @@ class Thresholds:
     cast_padding: float = 300.0  # [s] before and after, for the lift and the recovery
     max_wire_speed: float = 300.0  # [m min-1] faster payout steps are counter resets
     max_logging_gap: float = 5.0  # [s] longest gap in a cast's tension record
+    slow_haul_halt: float = 30.0  # [s] the payout still this long is a halt (Table A.8.4)
+    slow_haul_allowance: float = 0.10  # over Table A.8.4's ~500 m between halts
 
 
 @dataclass(frozen=True)

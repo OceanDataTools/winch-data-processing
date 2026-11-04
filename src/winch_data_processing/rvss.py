@@ -119,6 +119,10 @@ TABLES = (A_8_1, A_8_2, A_8_3, A_8_4, A_8_5)
 MIN_FS = {Kind.CABLE: 2.0, Kind.WIRE_ROPE: 1.5, Kind.SYNTHETIC: 5.0}
 # Peak tension over sheaves beyond the elastic limit retires the length (A.5.6, A.6.2)
 ELASTIC_LIMIT_FS = {Kind.CABLE: 1.8, Kind.WIRE_ROPE: 1.33}
+# Table A.8.4: once FS 2.0 is reached, halt the deployment at regular intervals (~500 m) and
+# slow haul until the nominal and peak tensions are established and verified
+SLOW_HAUL_FS = 2.0
+SLOW_HAUL_INTERVAL = 500.0  # [m]
 RETIRE_ABL_FRACTION = 0.5  # an ABL below half the NBL retires the length (A.5.6)
 ABL_DECREASE = 0.10  # a 10 % decrease in ABL shortens the break test interval
 

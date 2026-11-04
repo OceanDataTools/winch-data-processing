@@ -17,7 +17,7 @@ file doesn't settle a structural or tooling question, do what nav-qa-processing 
 `CLAUDE.md`, `pyproject.toml` and `src/nav_qa_processing/` (`quantities.py`, `config.py`,
 `cli.py`, `reports.py`, `pdf_report.py`, `notebook.py`, `integrations/openvdm/`).
 
-What exists (Phase 1, and Phase 2 in progress):
+What exists (Phases 1 and 2):
 - `rvss.py`: Appendix A as data (`Kind`, `Table` A.8.1 to A.8.5, `MIN_FS`, `ELASTIC_LIMIT_FS`,
   `table_for`). Change a requirement here, citing its section, never in a check.
 - `config.py`: the config TOML (`configs/config.example.toml` shows every key; add a new key
@@ -34,14 +34,15 @@ What exists (Phase 1, and Phase 2 in progress):
   a change to `find_casts`'s rule needs one here, and `tests/test_idle.py` to agree),
   `casts.py`, `checks.py`, `assess.py`, `wirelog.py`, `cli.py` (`run`, `formats`, and the
   integrations' commands), `clitools.py`, `network.py`.
-- Phase 2 so far: `plots.py` (figures from a `WinchResult` and a `Theme`, without pyplot),
-  `theme.py` (nav-qa-processing's keys, so one theme file serves the three projects; the
-  config's `[theme]`), `pdf_report.py` (ReportLab with svglib, nav-qa-processing's `Layout`),
-  `reports.py` (`write_reports`: everything a run writes, for `run` and the hook; every
-  output identical run to run: SVGs with a fixed hash salt and no date, the PDF invariant, the
-  notebook's cell IDs by position), `notebook.py` with `notebook_template.py` (Ruff checks the
-  template's code; `tests/test_notebook.py` executes it). pypdf, nbclient and ipykernel are
-  dev dependencies; matplotlib, ReportLab and nbformat load only when reports are written.
+- Phase 2: Table A.8.4's slow-haul checks (`checks.slow_hauls`: the halts every ~500 m once FS 2.0
+  is reached, rules in `checks.py`'s docstring), `plots.py` (figures from a `WinchResult` and a
+  `Theme`, without pyplot), `theme.py` (nav-qa-processing's keys, so one theme file serves the
+  three projects; the config's `[theme]`), `pdf_report.py` (ReportLab with svglib,
+  nav-qa-processing's `Layout`), `reports.py` (`write_reports`: everything a run writes, for `run`
+  and the hook; every output identical run to run: SVGs with a fixed hash salt and no date, the PDF
+  invariant, the notebook's cell IDs by position), `notebook.py` with `notebook_template.py` (Ruff
+  checks the template's code; `tests/test_notebook.py` executes it). pypdf, nbclient and ipykernel
+  are dev dependencies; matplotlib, ReportLab and nbformat load only when reports are written.
 - `integrations/openvdm/` (Phase 5, done early): the `openvdm` post-transfer hook,
   `config-from-openvdm` and `site-config`, ported from nav-qa-processing's. The site TOML's
   `[[winch]]` tables are config TOMLs but `[cruise]` (`configs/site.example.toml`); OpenVDM's

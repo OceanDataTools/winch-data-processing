@@ -126,6 +126,14 @@ raw files --formats/<reader>--> Records (per file, the data's units)
   each minute's minimum and maximum), for Phase 2's plot of the whole cruise; the payout's
   changes are all kept, so it plots exactly. Files out of time order are read again keeping
   every record. `WinchData.records` counts what was read; `len(data)`, what was kept.
+- **Slow-haul checks are halts every ~500 m** (Table A.8.4, which defines neither a halt nor a
+  slow haul). They apply only when the selected FS is in Table A.8.4: a cable halts at FS 2.0,
+  and other wire rope must halt there or move to Table A.8.4. From the first record of a
+  deployment's deployed stretch, paying out, at FS 2.0, to its deepest payout, a halt is the
+  payout reached so far not growing a whole metre for `slow_haul_halt` (30 s), so stopping
+  and a slow haul (hauling in) both count; the wire may go 500 m and `slow_haul_allowance`
+  (10 %, for the "~") between halts. Whether a slow haul established the nominal and peak
+  tensions is the operator's to show. The FS 1.5 halt is "Never below the lowest FS allowed".
 - **Peak tension is the logged maximum**, unfiltered: Appendix A asks for the peak, and the
   tables' logging rates are there so peaks are captured. A spike filter, if a sensor needs one,
   would be a per-format QC step stated in the docs, not a silent default.
@@ -134,12 +142,12 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 
 1. **Phase 1 (this):** scaffold, Appendix A as data, config, LCI-90i and delimited readers,
    deployments, the wire log, the checks, `run`. Tests on synthetic casts.
-2. **Phase 2: reports.** Done: `plots.py` (the cruise's timeline from the kept records and
+2. **Phase 2: reports (done).** `plots.py` (the cruise's timeline from the kept records and
    the minute envelope; tension against payout with the limits; the FS histogram; each
    deployment's tension and payout against time), `theme.py`, `reports.py`, `pdf_report.py`
    (the checks first, then the winch, the deployments, the records and the figures),
    `notebook.py` (re-runs the assessment), the hook's `--theme` and `--execute-notebook` and the
-   site TOML's `[theme]`, as nav-qa-processing's. To do: Table A.8.4's slow-haul checks.
+   site TOML's `[theme]`, as nav-qa-processing's, and Table A.8.4's slow-haul checks.
 3. **Phase 3: more formats.** MOTU, Markey and DynaCon control systems' logs, and the LCI-90i
    compared with a real unit's output; alarm conditions where a format logs them. Needs sample
    files from ships. Each format documented as nav-qa-processing's `formats/definitions/`.

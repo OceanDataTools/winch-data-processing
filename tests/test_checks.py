@@ -24,6 +24,7 @@ def test_a_cast_within_its_table_passes_every_data_check(tmp_path):
         "Tension logging rate",
         "Gaps in the tension record",
         "Tension alarm setting",
+        "Tension below the alarm point",
         "Tension display refresh rate",
         "Tension measuring system calibration",
         "Tension measuring accuracy",
@@ -44,6 +45,35 @@ def test_tension_beyond_the_swt_elastic_limit_and_lowest_fs_fails(tmp_path):
     assert checks["Never below the lowest FS allowed"].status is Status.FAIL
     elastic = checks["Peak tension within the elastic limit"]
     assert elastic.status is Status.FAIL and "cut back or retired" in elastic.detail
+
+
+def test_tension_past_the_alarm_point_warns(tmp_path):
+    # 3,300 lbf with a 300 lbf swell of 8 s, sampled at 1 Hz: above 3,500 lbf (the alarm
+    # setting) for 3 s each swell, at t = 1, 2 and 3 s of 8; above 3,571 lbf (A.8.2's alarm
+    # point, FS 2.8) for 1 s, at t = 2 s; 75 swells while the 300 m is out
+    rows = cast(START, rate=1, max_payout=300, base=3300, per_metre=0, swell=300)
+    found = _checks(tmp_path / "a", rows)["Tension below the alarm point"]
+    assert found.status is Status.WARN
+    assert found.detail.startswith(
+        "above the alarm setting, 3500 lbf (FS 2.86): cast 1: 225.0 s above in 75 spells from "
+        "2026-06-19T12:02:01Z, peak 3600 lbf (FS 2.78)"
+    ), found.detail
+    # Without an alarm setting, or with one above the table's point, it's the table's point
+    for text in (
+        CONFIG.replace("alarm_tension = 3500\n", ""),
+        CONFIG.replace("alarm_tension = 3500", "alarm_tension = 3600"),
+    ):
+        found = _checks(tmp_path / "b", rows, text)["Tension below the alarm point"]
+        assert found.detail.startswith(
+            "above Table A.8.2's alarm point, 3571 lbf (FS 2.8): cast 1: 75.0 s above in 75 spells"
+        ), found.detail
+    # Below it, it passes; a table without alarms (A.8.1) needs none
+    rows = cast(START, rate=1, max_payout=300)
+    found = _checks(tmp_path / "c", rows)["Tension below the alarm point"]
+    assert found.status is Status.PASS
+    assert found.detail == "every deployment below the alarm setting, 3500 lbf (FS 2.86)"
+    text = CONFIG.replace("factor_of_safety = 2.5", "factor_of_safety = 5")
+    assert _checks(tmp_path / "d", rows, text)["Tension below the alarm point"].status is Status.NA
 
 
 def test_the_logging_rate_the_table_requires(tmp_path):

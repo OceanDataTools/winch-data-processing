@@ -56,3 +56,6 @@ def test_its_checks(result):
     # 3,593 lbf on a 10,000 lbf ABL is FS 2.78: past the A.8.2 alarm point, FS 2.8
     alarm = 10_000 / 2.8
     assert result.casts[0].max_tension > alarm
+    crossing = checks["Tension below the alarm point"]  # past the config's 3,500 lbf setting
+    assert crossing.status is Status.WARN
+    assert crossing.detail.startswith("above the alarm setting, 3500 lbf (FS 2.86): cast 1: ")

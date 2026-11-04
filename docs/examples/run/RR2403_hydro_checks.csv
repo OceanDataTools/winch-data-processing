@@ -7,6 +7,7 @@ Slow-haul checks below FS 2.0,Table A.8.4,n/a,Table A.8.4 only (wire rope from F
 Tension logging rate,Table A.8.2,pass,every deployment logged at 3 Hz or more
 Gaps in the tension record,Tables A.8.2 to A.8.5,pass,no gap over 5 s in a deployment
 Tension alarm setting,Table A.8.2,warn,no [monitoring] alarm_tension; must be at or below 3571 lbf (FS 2.8)
+Tension below the alarm point,Table A.8.2,warn,"above Table A.8.2's alarm point, 3571 lbf (FS 2.8): cast 1: 0.1 s above in 1 spell from 2024-04-06T22:25:25Z, peak 3593 lbf (FS 2.78); did the alarm sound?"
 Alarm conditions in the logged data,Table A.8.2,info,not in this format's records; the logging system must show them
 Tension display refresh rate,Table A.8.2,warn,no [monitoring] display_rate; must be 3 Hz or more
 Tension measuring system calibration,Table A.8.2,warn,no [monitoring] last_calibration; every 6 months

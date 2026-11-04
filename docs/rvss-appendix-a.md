@@ -52,7 +52,7 @@ to 2.5; Table A.8.2 requires them before FS 2.8), and this tool follows the adop
 | Tension displayed at 3 Hz or 10 Hz, with a trending graph | Tables A.8.2–A.8.5 | config | Tension display refresh rate |
 | Calibration every 6 months | Tables A.8.2–A.8.5 | config | Tension measuring system calibration |
 | Accuracy 4 % or 3 % of the applied load | Tables A.8.2–A.8.5 | config | Tension measuring accuracy |
-| Alarms before the table's FS | Tables A.8.2–A.8.5 | config | Tension alarm setting |
+| Alarms before the table's FS | Tables A.8.2–A.8.5 | config; data | Tension alarm setting; Tension below the alarm point (a warning when the logged tension went above the lower of the alarm setting and ABL / the table's alarm FS) |
 | Alarm conditions included in the logged data | Tables A.8.2–A.8.5 | data, where the format logs them | Alarm conditions in the logged data (info until a format carries them) |
 | D/d, D/d1 and groove of every sheave and load-carrying roller | A.8.2, Tables A.8.2–A.8.5 | config | Sheaves and load-carrying rollers |
 | Break test interval, shortened after a 10 % ABL decrease | A.5.1.1, Tables A.8.1–A.8.4 | config | Break test interval |

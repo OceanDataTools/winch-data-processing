@@ -104,6 +104,7 @@ and table, the winch, the sheave train with each D/d), then a row a deployment:
 | Gaps in the tension record | Tables A.8.2–A.8.5 | data |
 | Slow-haul checks below FS 2.0 (a halt every ~500 m paid out, Table A.8.4 only) | Table A.8.4 | data |
 | Tension alarm setting | Tables A.8.2–A.8.5 | config |
+| Tension below the alarm point (warns when the logged tension went above it: did the alarm sound?) | Tables A.8.2–A.8.5 | data |
 | Alarm conditions in the logged data | Tables A.8.2–A.8.5 | operator |
 | Tension display refresh rate | Tables A.8.2–A.8.5 | config |
 | Tension measuring system calibration (every 6 months) | Tables A.8.2–A.8.5 | config |

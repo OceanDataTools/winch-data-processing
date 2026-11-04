@@ -137,6 +137,12 @@ raw files --formats/<reader>--> Records (per file, the data's units)
   and a slow haul (hauling in) both count; the wire may go 500 m and `slow_haul_allowance`
   (10 %, for the "~") between halts. Whether a slow haul established the nominal and peak
   tensions is the operator's to show. The FS 1.5 halt is "Never below the lowest FS allowed".
+- **Tension past the alarm point warns**, not fails: Tables A.8.2 to A.8.5 require an alarm
+  before their FS, not that tension stay below it, so a crossing is the operator's to look into
+  (did the alarm sound?). The point is the lower of `[monitoring] alarm_tension` and ABL / the
+  table's alarm FS, so an alarm set too high doesn't hide the table's. Each spell above runs
+  from its first sample above to the next at or below it; the check gives each deployment's
+  total time above, its spells, the first one's start and the peak.
 - **Peak tension is the logged maximum**, unfiltered: Appendix A asks for the peak, and the
   tables' logging rates are there so peaks are captured. A spike filter, if a sensor needs one,
   would be a per-format QC step stated in the docs, not a silent default.

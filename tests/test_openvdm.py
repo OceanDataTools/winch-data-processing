@@ -466,7 +466,7 @@ def test_hook_writes_the_outputs_into_the_extra_directory(hook, tmp_path, capsys
     out = capsys.readouterr().out
     assert "SR2612_CTD: " in out and "2 deployments" in out
     output = cruise_dir / "Products/WINCH_QA"
-    names = ("config.toml", "wire_log.csv", "checks.csv", "plots")
+    names = ("config.toml", "wire_log.csv", "checks.csv", "plots", "report.pdf")
     assert {p.name for p in output.iterdir()} == {f"SR2612_CTD_{n}" for n in names}
     figures = ("timeline", "tension_and_payout", "factor_of_safety", "cast_001", "cast_002")
     svgs = {output / "SR2612_CTD_plots" / f"{f}.svg" for f in figures}

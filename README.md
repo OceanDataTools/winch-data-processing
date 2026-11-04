@@ -39,13 +39,14 @@ cp configs/config.example.toml configs/SR2612_CTD.toml   # then fill it in
 uv run winch-data-processing run data/SR2612_winch -c configs/SR2612_CTD.toml -o output
 ```
 
-`run` writes `<CRUISE>_<WINCH>_wire_log.csv`, `<CRUISE>_<WINCH>_checks.csv` and the figures, as
-SVGs in `<CRUISE>_<WINCH>_plots/` ([Figures](#figures)), and prints the checks; it exits 1 when
-a check fails.
+`run` writes `<CRUISE>_<WINCH>_wire_log.csv`, `<CRUISE>_<WINCH>_checks.csv`, the figures, as
+SVGs in `<CRUISE>_<WINCH>_plots/` ([Figures](#figures)), and `<CRUISE>_<WINCH>_report.pdf`
+([The PDF report](#the-pdf-report)), and prints the checks; it exits 1 when a check fails. Every
+output is identical from run to run.
 
 | Command | What it does |
 |---|---|
-| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML]` | Read the winch's raw files, find the deployments, write the wire log, the checks and the figures |
+| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML]` | Read the winch's raw files, find the deployments, write the wire log, the checks, the figures and the PDF report |
 | `formats` | List the data formats |
 | `openvdm TRANSFER [--site-config SITE_TOML] ...` | The OpenVDM hook: assess each of the transfer's winches for OpenVDM's current cruise ([OpenVDM](#openvdm)) |
 | `config-from-openvdm TRANSFER [--site-config SITE_TOML] [-o OUTPUT_DIR]` | Write each winch's config TOML from OpenVDM's cruise, as the hook would, without assessing |
@@ -113,7 +114,7 @@ In `<CRUISE>_<WINCH>_plots/`, as SVG, identical from run to run:
 | File | What it shows |
 |---|---|
 | `timeline.svg` | The cruise's payout, and its tension as each minute's lowest to highest from every record, against time; the deployments shaded and numbered, the SWT. Lines break where nothing was logged |
-| `tension_and_payout.svg` | Every deployment's tension against its payout, with the limits |
+| `tension_and_payout.svg` | Every deployment's tension against its payout, with the limits; broken at a counter reset |
 | `factor_of_safety.svg` | The deployments' records by factor of safety (ABL / tension), with the selected FS, the table's alarm point, the lowest FS allowed and the elastic limit |
 | `cast_NNN.svg` | Each deployment's tension and payout against time, with the limits and its peak |
 
@@ -122,6 +123,14 @@ or the table's alarm point without one), the lowest FS the kind may be operated 
 elastic limit (cables and wire rope). A long series is drawn as each bin's lowest and highest
 values, so no peak is lost. The look is the theme: `--theme` and the config's `[theme]`, the same
 keys as nav-qa-processing's and sbe-qa-processing's.
+
+### The PDF report
+
+`<CRUISE>_<WINCH>_report.pdf`: the cruise and its files, a verdict line on the worst status's
+color, the checks, the winch and tension member (the wire log's header: NBL, ABL, the selected
+FS, the SWT, the table, break tests, sheaves), the deployments (the wire log), the records read
+and skipped by reason, and the figures, embedded from the SVGs as vector drawings. The theme sets
+its page size, margins, fonts, logo and footer.
 
 ## Configuration
 
@@ -165,8 +174,8 @@ OpenVDM's hooks through the cruise, as nav-qa-processing's and sbe-qa-processing
   and files glob within the transfer's directory). The hook assesses the winches whose
   `transfer` is the hook's or blank, and with `--changed-files` only those whose files changed.
 - **Writes, into the extra directory,** each winch's `<CRUISE>_<WINCH>_wire_log.csv`,
-  `<CRUISE>_<WINCH>_checks.csv`, its figures (`<CRUISE>_<WINCH>_plots/`, [Figures](#figures))
-  and `<CRUISE>_<WINCH>_config.toml`, the config it made from
+  `<CRUISE>_<WINCH>_checks.csv`, its figures (`<CRUISE>_<WINCH>_plots/`, [Figures](#figures)),
+  `<CRUISE>_<WINCH>_report.pdf` and `<CRUISE>_<WINCH>_config.toml`, the config it made from
   OpenVDM's cruise and the site TOML, and assessed from: `run -c` on it repeats the run.
   Earlier runs' files are replaced. As root, the files are given to OpenVDM's warehouse user.
 - **Adds those files to the cruise's MD5 summary,** with OpenVDM's `utils/update_md5_summary.py`

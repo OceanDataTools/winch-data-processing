@@ -21,7 +21,8 @@ raw files --formats/<reader>--> Records (per file, the data's units)
           --checks.run_checks--> [Check] (pass / fail / warn / info / n/a, by section)
           = assess.assess -> WinchResult
           --reports.write_reports--> <CRUISE>_<WINCH>_wire_log.csv, <CRUISE>_<WINCH>_checks.csv,
-                                     <CRUISE>_<WINCH>_plots/*.svg (plots.py, theme.py)
+                                     <CRUISE>_<WINCH>_plots/*.svg (plots.py, theme.py),
+                                     <CRUISE>_<WINCH>_report.pdf (pdf_report.py)
 ```
 
 ## Modules
@@ -51,6 +52,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 - `plots.py`: the figures (`FIGURES`, then `cast_figures`), each `(WinchResult, Theme)` ->
   matplotlib `Figure`, made without pyplot.
 - `theme.py`: the look (`--theme` file, then the config's `[theme]`), nav-qa-processing's keys.
+- `pdf_report.py`: `write_pdf(result, path, svgs, theme)`: the title and verdict, checks, winch,
+  deployments, records, then the figures' SVGs as vector drawings (ReportLab, svglib);
+  `Layout` and the helpers are nav-qa-processing's. Written invariant, so identical run to run.
 - `reports.py`: `write_reports(result, output, theme)`, everything a run writes
   (`report_paths`); the CLI and the hook both call it.
 - `cli.py`: `run`, `formats`, and the integrations' commands (`INTEGRATIONS`: each module's
@@ -129,10 +133,10 @@ raw files --formats/<reader>--> Records (per file, the data's units)
    deployments, the wire log, the checks, `run`. Tests on synthetic casts.
 2. **Phase 2: reports.** Done: `plots.py` (the cruise's timeline from the kept records and
    the minute envelope; tension against payout with the limits; the FS histogram; each
-   deployment's tension and payout against time), `theme.py`, `reports.py`. To do:
-   `pdf_report.py` (ReportLab + svglib, the checks first), `notebook.py` (re-runs the
-   assessment), the hook's `--theme` and `--execute-notebook`, as nav-qa-processing's; Table
-   A.8.4's slow-haul checks.
+   deployment's tension and payout against time), `theme.py`, `reports.py`, `pdf_report.py`
+   (the checks first, then the winch, the deployments, the records and the figures). To do:
+   `notebook.py` (re-runs the assessment), the hook's `--theme` and `--execute-notebook`, as
+   nav-qa-processing's; Table A.8.4's slow-haul checks.
 3. **Phase 3: more formats.** MOTU, Markey and DynaCon control systems' logs, and the LCI-90i
    compared with a real unit's output; alarm conditions where a format logs them. Needs sample
    files from ships. Each format documented as nav-qa-processing's `formats/definitions/`.

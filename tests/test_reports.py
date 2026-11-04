@@ -1,15 +1,21 @@
 """The figures (plots.py) and everything a run writes (reports.py), with themes (theme.py)."""
 
+from dataclasses import replace
 from datetime import timedelta
 
 import numpy as np
 import pytest
 from conftest import CONFIG, START, cast, write_cruise
+from matplotlib.figure import Figure
+from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4
 
 from winch_data_processing import plots
 from winch_data_processing.assess import assess
+from winch_data_processing.checks import Check, Status
 from winch_data_processing.cli import main
 from winch_data_processing.config import ConfigError, loads_config
+from winch_data_processing.pdf_report import verdict
 from winch_data_processing.reports import report_paths, write_reports
 from winch_data_processing.theme import DEFAULT_THEME, resolve_theme
 
@@ -53,7 +59,7 @@ def test_write_reports_writes_the_log_checks_and_figures(result, tmp_path):
     written = write_reports(result, tmp_path)
     paths = report_paths(result.config, tmp_path)
     svgs = [paths["plots"] / f"{name}.svg" for name in (*FIGURES, "cast_001", "cast_002")]
-    assert written == [paths["wire log"], paths["checks"], *svgs]
+    assert written == [paths["wire log"], paths["checks"], *svgs, paths["pdf"]]
     assert all(svg.read_text().startswith("<?xml") for svg in svgs)
 
 
@@ -111,3 +117,60 @@ def test_a_theme_that_cant_be_used(tmp_path, capsys):
         err.strip().endswith("page_size must be one of letter, A4") and len(err.splitlines()) == 1
     )
     assert not (tmp_path / "out").exists()  # refused before any work
+
+
+def pdf_text(path) -> str:
+    return "\n".join(page.extract_text() for page in PdfReader(path).pages)
+
+
+def test_the_pdf_has_the_checks_winch_deployments_and_figures(result, tmp_path):
+    write_reports(result, tmp_path)
+    text = pdf_text(report_paths(result.config, tmp_path)["pdf"])
+    assert "Winch wire log and RVSS Appendix A checks: TEST01 CTD" in text
+    assert "No check failed" in text and "Tension within the safe working" in text
+    assert "NSF-TEST" in text and "Safe working tension (SWT = ABL / FS)" in text
+    assert "Block" in text  # the sheave
+    assert "Deployment 1" in text and "Deployment 2" in text and "Timeline" in text
+
+
+def test_the_pdf_is_identical_run_to_run(result, tmp_path):
+    pdf = report_paths(result.config, tmp_path)["pdf"]
+    write_reports(result, tmp_path)
+    first = pdf.read_bytes()
+    write_reports(result, tmp_path)
+    assert pdf.read_bytes() == first
+
+
+def test_the_pdf_takes_the_themes_page_size_and_logo(result, tmp_path):
+    logo = tmp_path / "logo.png"
+    Figure(figsize=(2, 1)).savefig(logo)
+    theme_file = tmp_path / "theme.toml"
+    theme_file.write_text('page_size = "A4"\nlogo = "logo.png"\norganization = "SIO"\n')
+    write_reports(result, tmp_path / "out", theme=resolve_theme(theme_file))
+    reader = PdfReader(report_paths(result.config, tmp_path / "out")["pdf"])
+    box = reader.pages[0].mediabox
+    assert (round(float(box.width)), round(float(box.height))) == tuple(round(x) for x in A4)
+    assert "SIO · Winch wire log" in reader.pages[0].extract_text()
+
+
+def test_the_verdict_names_failed_checks_first():
+    passed = Check("A", "A.1", Status.PASS, "")
+    warned = Check("B", "A.2", Status.WARN, "")
+    failed = Check("C", "A.3", Status.FAIL, "")
+    assert verdict([passed, warned, failed]) == (Status.FAIL, "1 of 3 checks failed: C")
+    status, text = verdict([passed, warned])
+    assert status is Status.WARN and text.startswith("No check failed; 1 can't be shown met")
+    assert verdict([passed]) == (Status.PASS, "No check failed; 1 of 1 passed")
+
+
+def test_the_pdf_lists_files_that_couldnt_be_read(result, tmp_path):
+    data = replace(result.data, errors=["broken.txt.gz: Compressed file ended early"])
+    write_reports(replace(result, data=data), tmp_path)
+    text = pdf_text(report_paths(result.config, tmp_path)["pdf"])
+    assert "Files that couldn't be read: broken.txt.gz" in text
+
+
+def test_tension_against_payout_breaks_at_a_counter_reset():
+    times = np.datetime64("2026-06-19T00:00", "ns") + np.arange(4) * np.timedelta64(1, "s")
+    payout = np.array([664.5, 664.5, 0.0, 1.0])  # zeroed in a second: no wire moves so fast
+    assert plots._resets(times, payout, max_speed=300).tolist() == [1]

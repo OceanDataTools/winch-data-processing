@@ -134,6 +134,15 @@ def _count(n: int, thing: str) -> str:
     return f"{n:,} {thing}" if n == 1 else f"{n:,} {thing}s"
 
 
+def _resets(times: np.ndarray, payout: np.ndarray, max_speed: float) -> np.ndarray:
+    """Indices i where the payout steps from point i to i + 1 faster than `max_speed`
+    [m min-1] (at least 1 m) moves the wire, as `casts.find_casts` tells a counter reset
+    """
+    seconds = np.diff(times) / np.timedelta64(1, "s")
+    with np.errstate(invalid="ignore"):
+        return np.flatnonzero(np.abs(np.diff(payout)) > np.maximum(max_speed / 60 * seconds, 1.0))
+
+
 def _limits(result: WinchResult) -> list[tuple[str, float, str]]:
     """(label, tension [lbf], line style) of the config's limits"""
     member = result.config.tension_member
@@ -287,15 +296,12 @@ def tension_and_payout(result: WinchResult, theme: Theme = DEFAULT_THEME) -> Fig
             tension, payout = data.tension[records], data.payout[records]
             shown = extremes(tension, per_cast)
             label = f"{cast.number}" if len(result.casts) <= len(cycle) else None
-            # Points, not a line: a counter reset would draw one across the figure
-            axis.plot(
-                payout[shown],
-                tension[shown],
-                ".",
-                color=cycle[i % len(cycle)],
-                ms=1.5,
-                label=label,
-            )
+            # Broken at a step faster than the wire moves (a counter reset), which would
+            # otherwise draw a line across the figure
+            times = data.time[records][shown]
+            resets = _resets(times, payout[shown], result.config.thresholds.max_wire_speed)
+            _, x, y = _with_breaks(times, payout[shown], tension[shown], at=resets)
+            axis.plot(x, y, color=cycle[i % len(cycle)], lw=0.6, label=label)
             top = max(top, cast.max_tension)
         _draw_limits(
             axis,

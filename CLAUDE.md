@@ -45,8 +45,9 @@ What exists (Phases 1 and 2):
   are dev dependencies; matplotlib, ReportLab and nbformat load only when reports are written.
 - Phase 4 (in progress, `docs/architecture.md`'s plan): `wirerecord.py`, the wire record
   (`RECORDS_DIR/<NSF-ID>/deployments.csv` and `tension_member.toml`, plain files read and
-  written only there), merged by `run --wire-record` and the hook; `record_report.py`,
-  `wire-record report`.
+  written only there; `events.toml`, the operator's, read and checked there, never written),
+  merged by `run --wire-record` and the hook, whose checks then use the record's break tests
+  (`with_break_tests`); `record_report.py`, `wire-record report`.
 - `integrations/openvdm/` (Phase 5, done early): the `openvdm` post-transfer hook,
   `config-from-openvdm` and `site-config`, ported from nav-qa-processing's. The site TOML's
   `[[winch]]` tables are config TOMLs but `[cruise]` (`configs/site.example.toml`); OpenVDM's
@@ -64,7 +65,7 @@ What exists (Phases 1 and 2):
   (`tests/test_openvdm.py`). pyyaml is the `openvdm` extra and a dev dependency.
 - Lint and format: `uv run ruff check .` and `uv run ruff format --check .` (line length 99).
 - `/data/` (raw winch data) and `/output/` are gitignored; `configs/` is the users' space but for
-  `config.example.toml` and `site.example.toml`.
+  `config.example.toml`, `site.example.toml` and `events.example.toml`.
 
 ## Conventions (from nav-qa-processing)
 

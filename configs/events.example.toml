@@ -1,0 +1,48 @@
+# A tension member's events, for its wire record (winch-data-processing --wire-record): what
+# only the operator's records show (RVSS Appendix A, A.5.2.1). Copy to RECORDS_DIR/<NSF-ID>/
+# events.toml and add entries as they happen; the tool reads it, checks it and never writes it.
+# Each kind is an array of tables ([[...]]), every entry with its date; note is optional on each.
+
+tension_unit = "lbf"            # load and proof_load: lbf, N, kN or kgf
+length_unit = "m"               # length: m or ft
+
+# A Wire Pool break test: its TBL sets the ABL (the lower of it and the NBL) and the break test
+# interval of every cruise run with --wire-record, so it needn't be in each config too
+[[break_test]]
+date = 2025-08-01
+load = 10400
+note = "Wire Pool test 2025-114"
+
+# Spooling: the length on the drum after, from which cutbacks are taken off
+[[spooling]]
+date = 2025-06-12
+length = 8000
+winch = "hydro"
+note = "new wire from the Wire Pool"
+
+# A cutback, from the working end
+[[cutback]]
+date = 2026-02-03
+length = 50
+reason = "re-terminating"
+note = "kinked below the termination"
+
+[[lubrication]]
+date = 2025-12-15
+lubricant = "Nyrosten T-50"
+length = 3000                   # how much wire was lubricated
+note = "the outer 3,000 m, in port"
+
+# A test of the conductors or fibers: TDR, resistance, OTDR, optical loss, ...
+[[test]]
+date = 2026-02-04
+kind = "resistance"
+result = "conductor 1: 41.2 ohm; insulation over 500 Mohm"
+note = "after re-terminating"
+
+# A mechanical termination installed, and its proof test
+[[termination]]
+date = 2026-02-03
+kind = "mechanical termination, 0.322 in."
+proof_load = 4000
+note = "no slippage after the proof test"

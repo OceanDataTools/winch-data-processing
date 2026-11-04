@@ -1,5 +1,12 @@
 # winch-data-processing
 
+> [!WARNING]
+> **Under heavy development.** This project is shared for peer review. Its outputs, command
+> line, config format and Python API may change without notice, and its results haven't been
+> validated beyond RR2403's winch data (see [Data formats](#data-formats)).
+> Don't rely on it for operational wire logs or RVSS compliance yet. Issues and comments are
+> welcome.
+
 Wire logs and RVSS Appendix A checks from oceanographic winch data.
 
 [RVSS Appendix A](https://www.unols.org/document/document/research-vessel-safety-standards-rvss)
@@ -23,6 +30,8 @@ needs to begin.
 
 **[docs/examples](docs/examples/)** has what it writes for a real cast, RR2403's hydro winch: the
 PDF report, the wire log, the checks, two figures, and a wire record's report.
+
+![RR2403's hydro winch: payout and tension through the cruise, the deployment shaded](docs/examples/run/RR2403_hydro_plots/timeline.svg)
 
 ## Install
 
@@ -126,6 +135,8 @@ In `<CRUISE>_<WINCH>_plots/`, as SVG, identical from run to run:
 | `tension_and_payout.svg` | Every deployment's tension against its payout, with the limits; broken at a counter reset |
 | `factor_of_safety.svg` | The deployments' records by factor of safety (ABL / tension), with the selected FS, the table's alarm point, the lowest FS allowed and the elastic limit |
 | `cast_NNN.svg` | Each deployment's tension and payout against time, with the limits and its peak |
+
+![RR2403's cast: tension and payout against time, with the limits and the peak](docs/examples/run/RR2403_hydro_plots/cast_001.svg)
 
 The limits are the SWT (ABL / the selected FS), the alarm setting (`[monitoring] alarm_tension`,
 or the table's alarm point without one), the lowest FS the kind may be operated to, and the

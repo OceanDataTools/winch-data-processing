@@ -65,6 +65,7 @@ from winch_data_processing.config import (
 )
 from winch_data_processing.network import reaching
 from winch_data_processing.rvss import StandardError
+from winch_data_processing.theme import ThemeError, theme_table
 from winch_data_processing.wirelog import safe_name
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,9 @@ class SiteConfig:
 
     [thresholds]              # every winch's, as in a config TOML; a winch's own win
 
+    [theme]                   # every winch's reports', as in a config TOML; paths relative to
+                              # this file
+
     [[winch]]                 # one a winch: a config TOML's tables but [cruise], under it
     name = "hydro"
     transfer = "OpenRVDAS"    # optional: only that transfer's hook assesses it
@@ -151,6 +155,7 @@ class SiteConfig:
     contact_institution: str = ""
     contact_email: str = ""
     thresholds: dict = field(default_factory=dict)  # [thresholds], as in a config TOML
+    theme: dict = field(default_factory=dict)  # [theme], checked, its paths absolute
 
     def winches_for(self, transfer: str) -> list[SiteWinch]:
         """The winches a transfer's hook assesses: those naming it, and those naming none"""
@@ -164,6 +169,7 @@ SITE_KEYS = {
     "openvdm": {"output_extra_directory": None},
     "provenance": SCHEMA["provenance"],
     "thresholds": SCHEMA["thresholds"],
+    "theme": SCHEMA["theme"],
     "winch": {
         **SCHEMA["winch"],
         "transfer": None,
@@ -199,6 +205,10 @@ def load_site_config(path: Path | str | None) -> SiteConfig:
         contact_email=provenance.get("contact_email", ""),
         thresholds=data.get("thresholds", {}),
     )
+    try:
+        site.theme = theme_table(data.get("theme", {}), path.parent, str(path))
+    except ThemeError as error:
+        raise ConfigError(str(error)) from None
     names = set()
     for number, table in enumerate(data.get("winch", []), 1):
         winch = site_winch(table)
@@ -221,12 +231,16 @@ def site_winch(table: dict) -> SiteWinch:
 
 
 def winch_tables(site: SiteConfig, winch: SiteWinch) -> dict:
-    """The winch's config TOML tables but [cruise], the site's [thresholds] under its own"""
+    """The winch's config TOML tables but [cruise], the site's [thresholds] under its own, and
+    the site's [theme]
+    """
     tables = dict(winch.tables)
     thresholds = {**site.thresholds, **winch.tables.get("thresholds", {})}
     tables.pop("thresholds", None)
     if thresholds:
         tables["thresholds"] = thresholds
+    if site.theme:
+        tables["theme"] = site.theme
     return tables
 
 
@@ -280,6 +294,14 @@ def site_config_to_toml(site: SiteConfig) -> str:
         lines += [dumps_toml({"thresholds": site.thresholds}).rstrip("\n")]
     else:
         lines += ["# [thresholds]", "# deploy_payout = 10.0"]
+    lines += [
+        "",
+        "# Every winch's reports' theme, as in a config TOML (paths relative to this file)",
+    ]
+    if site.theme:
+        lines += [dumps_toml({"theme": site.theme}).rstrip("\n")]
+    else:
+        lines += ["# [theme]", '# page_size = "A4"', '# palette = "colorblind"']
     lines += [
         "",
         "# The winches: a [[winch]] table for each, holding a config TOML's tables but [cruise]",

@@ -27,6 +27,7 @@ from winch_data_processing.clitools import print_written, refuse_overwrite
 from winch_data_processing.config import ConfigError, load_config
 from winch_data_processing.integrations.openvdm import cli as openvdm_cli
 from winch_data_processing.network import NetworkError
+from winch_data_processing.notebook import NotebookError
 from winch_data_processing.rvss import StandardError
 from winch_data_processing.theme import ThemeError
 from winch_data_processing.units import UnitError
@@ -45,6 +46,7 @@ EXPECTED_ERRORS = (
     NotADirectoryError,
     FileExistsError,
     ThemeError,
+    NotebookError,
     *(error for integration in INTEGRATIONS for error in integration.EXPECTED_ERRORS),
 )
 MARKS = {
@@ -108,7 +110,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--theme",
         metavar="THEME_TOML",
         type=Path,
-        help="theme file for the figures; the config's [theme] applies on top",
+        help="theme file for the PDF, figures and notebook; the config's [theme] applies on top",
+    )
+    run.add_argument(
+        "--execute-notebook",
+        action="store_true",
+        help="run the notebook and save its outputs (needs nbclient and ipykernel)",
     )
     run.set_defaults(handler=_run)
 
@@ -146,7 +153,10 @@ def _run(args) -> int:
     result = assess(args.data_dir, config)
     for error in result.data.errors:
         print(f"unread: {error}", file=sys.stderr)
-    print_written(write_reports(result, args.output, theme))
+    written = write_reports(
+        result, args.output, theme, args.theme, execute_notebook=args.execute_notebook
+    )
+    print_written(written)
     print("\n".join(summary(result)))
     return 1 if result.failed else 0
 

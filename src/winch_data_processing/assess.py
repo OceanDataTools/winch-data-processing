@@ -15,6 +15,7 @@ class WinchResult:
     data: WinchData
     casts: list[Cast]
     checks: list[Check]
+    directory: Path | None = None  # the data directory read
 
     @property
     def failed(self) -> list[Check]:
@@ -24,4 +25,4 @@ class WinchResult:
 def assess(directory: Path | str, config: Config) -> WinchResult:
     data = read_fileset(directory, config)
     casts = find_casts(data, config.thresholds)
-    return WinchResult(config, data, casts, run_checks(config, data, casts))
+    return WinchResult(config, data, casts, run_checks(config, data, casts), Path(directory))

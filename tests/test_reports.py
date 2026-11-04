@@ -59,7 +59,7 @@ def test_write_reports_writes_the_log_checks_and_figures(result, tmp_path):
     written = write_reports(result, tmp_path)
     paths = report_paths(result.config, tmp_path)
     svgs = [paths["plots"] / f"{name}.svg" for name in (*FIGURES, "cast_001", "cast_002")]
-    assert written == [paths["wire log"], paths["checks"], *svgs, paths["pdf"]]
+    assert written == [paths["wire log"], paths["checks"], *svgs, paths["pdf"], paths["notebook"]]
     assert all(svg.read_text().startswith("<?xml") for svg in svgs)
 
 

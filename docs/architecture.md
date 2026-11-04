@@ -55,6 +55,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 - `pdf_report.py`: `write_pdf(result, path, svgs, theme)`: the title and verdict, checks, winch,
   deployments, records, then the figures' SVGs as vector drawings (ReportLab, svglib);
   `Layout` and the helpers are nav-qa-processing's. Written invariant, so identical run to run.
+- `notebook.py`, `notebook_template.py`: the notebook that re-runs the assessment, its cells a
+  Python file in jupytext's percent format that Ruff checks, with markers `build_notebook`
+  fills (nav-qa-processing's, without its integrations' extras); cell IDs by position.
 - `reports.py`: `write_reports(result, output, theme)`, everything a run writes
   (`report_paths`); the CLI and the hook both call it.
 - `cli.py`: `run`, `formats`, and the integrations' commands (`INTEGRATIONS`: each module's
@@ -134,9 +137,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 2. **Phase 2: reports.** Done: `plots.py` (the cruise's timeline from the kept records and
    the minute envelope; tension against payout with the limits; the FS histogram; each
    deployment's tension and payout against time), `theme.py`, `reports.py`, `pdf_report.py`
-   (the checks first, then the winch, the deployments, the records and the figures). To do:
-   `notebook.py` (re-runs the assessment), the hook's `--theme` and `--execute-notebook`, as
-   nav-qa-processing's; Table A.8.4's slow-haul checks.
+   (the checks first, then the winch, the deployments, the records and the figures),
+   `notebook.py` (re-runs the assessment), the hook's `--theme` and `--execute-notebook` and the
+   site TOML's `[theme]`, as nav-qa-processing's. To do: Table A.8.4's slow-haul checks.
 3. **Phase 3: more formats.** MOTU, Markey and DynaCon control systems' logs, and the LCI-90i
    compared with a real unit's output; alarm conditions where a format logs them. Needs sample
    files from ships. Each format documented as nav-qa-processing's `formats/definitions/`.
@@ -147,8 +150,8 @@ raw files --formats/<reader>--> Records (per file, the data's units)
    and `site-config` as nav-qa-processing's: run after a winch transfer, outputs into the
    cruise's extra directory, a site TOML per ship with its winches and tension members, tested
    against OpenVDM 2.17's own code (`tests/test_openvdm_contract.py`). Phase 2's reports go
-   into the same extra directory when they come (`--theme`, `--execute-notebook` as
-   nav-qa-processing's hook has).
+   into the same extra directory (`--theme`, `--execute-notebook` as nav-qa-processing's hook
+   has).
 6. **Memory and speed (done in part).** RR2403's hydro winch, 4 days at 20 Hz (6.57 M
    records), outputs unchanged: 25 s and 865 MB peak before, 3.4 s and 170 MB after (macOS);
    37 s and 866 MB before, 6 s and 140 MB after (Linux). Memory now follows the largest file,

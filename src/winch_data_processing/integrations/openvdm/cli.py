@@ -89,8 +89,10 @@ def _duration(text: str) -> str:
 
 def _openvdm(args: argparse.Namespace) -> int:
     from winch_data_processing.integrations.openvdm import hook as openvdm
+    from winch_data_processing.theme import resolve_theme
 
     site = openvdm.load_site_config(_site_toml(args))
+    resolve_theme(args.theme)  # a theme file that can't be used fails before any work
     winches = site.winches_for(args.transfer)
     if not winches:
         print(f"{args.transfer}: the site config has no [[winch]] in it; nothing to do")
@@ -154,7 +156,10 @@ def _openvdm_winch(args: argparse.Namespace, run, site_root: str) -> None:
     result = assess(run.fileset_dir, load_config(snapshot))
     for error in result.data.errors:
         print(f"  unread: {error}")
-    written = [snapshot, *write_reports(result, run.output_dir)]
+    reports = write_reports(
+        result, run.output_dir, theme_file=args.theme, execute_notebook=args.execute_notebook
+    )
+    written = [snapshot, *reports]
     openvdm.chown_tree(run.output_dir, run.owner)
     print_written(written)
     print("\n".join(summary(result)))
@@ -312,6 +317,20 @@ def add_commands(commands) -> None:
             "cruise is reassessed at most this often; leave it out of a preFinalizeCurrentCruise "
             "hook, which writes the final wire logs"
         ),
+    )
+    hook.add_argument(
+        "--theme",
+        metavar="THEME_TOML",
+        type=Path,
+        help=(
+            "theme file for the PDF, figures and notebook; the site config's [theme] applies on "
+            "top"
+        ),
+    )
+    hook.add_argument(
+        "--execute-notebook",
+        action="store_true",
+        help="run each winch's notebook and save its outputs (needs nbclient and ipykernel)",
     )
     # OpenVDM shows the hook's failure message, so every error is one line (cli.main)
     hook.set_defaults(handler=_openvdm, every_error_one_line=True)

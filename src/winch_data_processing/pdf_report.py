@@ -246,7 +246,7 @@ def _cruise_facts(result: WinchResult) -> list[str]:
 
 def _source(result: WinchResult) -> str:
     data, source = result.data, result.config.data
-    where = str(data.files[0].parent) if data.files else "no files"
+    where = str(result.directory) if result.directory else "no directory"
     description = formats.READERS[source.format].description
     return (
         f"Source: {where} · {len(data.files)} files ({source.files}) · format {source.format} "

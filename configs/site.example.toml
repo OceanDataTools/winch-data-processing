@@ -19,6 +19,13 @@ output_extra_directory = "WINCH_QA"      # where outputs go: an extra directory 
 # [thresholds]
 # deploy_payout = 10.0
 
+# Every winch's reports' theme, as in a config TOML (paths relative to this file); a --theme
+# file given to the hook is under it
+# [theme]
+# page_size = "A4"
+# palette = "colorblind"
+# logo = "logo.png"
+
 # The winches: a [[winch]] table for each, holding a config TOML's tables but [cruise]
 # (configs/config.example.toml shows every key), each under the winch: [winch.tension_member],
 # [[winch.tension_member.break_test]], [[winch.sheave]], [winch.monitoring], [winch.data] and

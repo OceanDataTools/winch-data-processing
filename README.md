@@ -40,13 +40,14 @@ uv run winch-data-processing run data/SR2612_winch -c configs/SR2612_CTD.toml -o
 ```
 
 `run` writes `<CRUISE>_<WINCH>_wire_log.csv`, `<CRUISE>_<WINCH>_checks.csv`, the figures, as
-SVGs in `<CRUISE>_<WINCH>_plots/` ([Figures](#figures)), and `<CRUISE>_<WINCH>_report.pdf`
-([The PDF report](#the-pdf-report)), and prints the checks; it exits 1 when a check fails. Every
-output is identical from run to run.
+SVGs in `<CRUISE>_<WINCH>_plots/` ([Figures](#figures)), `<CRUISE>_<WINCH>_report.pdf` ([The
+PDF report](#the-pdf-report)) and `<CRUISE>_<WINCH>_report.ipynb` ([The notebook](#the-notebook)),
+and prints the checks; it exits 1 when a check fails. Every output is identical from run to run
+(the notebook unless it's executed).
 
 | Command | What it does |
 |---|---|
-| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML]` | Read the winch's raw files, find the deployments, write the wire log, the checks, the figures and the PDF report |
+| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML] [--execute-notebook]` | Read the winch's raw files, find the deployments, write the wire log, the checks, the figures, the PDF report and the notebook |
 | `formats` | List the data formats |
 | `openvdm TRANSFER [--site-config SITE_TOML] ...` | The OpenVDM hook: assess each of the transfer's winches for OpenVDM's current cruise ([OpenVDM](#openvdm)) |
 | `config-from-openvdm TRANSFER [--site-config SITE_TOML] [-o OUTPUT_DIR]` | Write each winch's config TOML from OpenVDM's cruise, as the hook would, without assessing |
@@ -132,6 +133,15 @@ FS, the SWT, the table, break tests, sheaves), the deployments (the wire log), t
 and skipped by reason, and the figures, embedded from the SVGs as vector drawings. The theme sets
 its page size, margins, fonts, logo and footer.
 
+### The notebook
+
+`<CRUISE>_<WINCH>_report.ipynb` re-runs the assessment step by step: the paths (the config, the
+data, the theme file, the output directory), `assess`, the checks, the wire log, the records and
+every figure, then a cell that writes the reports again. Edit the config's `[thresholds]` or
+tension member and re-run it to see what changes. `--execute-notebook` runs it and saves its
+outputs (but the last cell's: the reports were just written); that needs nbclient and ipykernel,
+in the dev group (`uv sync`), and a run takes as long again.
+
 ## Configuration
 
 A TOML per winch and cruise; [configs/config.example.toml](configs/config.example.toml) shows
@@ -148,7 +158,7 @@ every key. Unknown keys are an error saying where they belong.
 | `[monitoring]` | `system`, `display_rate` [Hz], `last_calibration`, `accuracy` [%], `alarm_tension` |
 | `[data]` | `format`, `files` (glob), `time` (`logger` or `instrument`), `tension_unit`, `payout_unit`, `speed_unit`, `delimiter`, `header_lines`, `time_format`; `[data.columns]` `time`, `tension`, `payout`, `speed` |
 | `[thresholds]` | `deploy_payout` [m], `merge_gap` [s], `min_cast_duration` [s], `cast_padding` [s], `max_wire_speed` [m min-1], `max_logging_gap` [s] |
-| `[theme]` | The figures' look: `page_size`, `margin`, `font`, `bold_font`, `font_scale`, `figure_font_scale`, `logo`, `organization`, `footer`, `palette` (`default`, `colorblind`); `[theme.colors]` (`primary` the tension, `secondary` the limits). The same keys as nav-qa-processing's, so one theme file (`--theme`) serves both |
+| `[theme]` | The reports' look (the PDF, figures and notebook): `page_size`, `margin`, `font`, `bold_font`, `font_scale`, `figure_font_scale`, `logo`, `organization`, `footer`, `palette` (`default`, `colorblind`); `[theme.colors]` (`primary` the tension, `secondary` the limits). The same keys as nav-qa-processing's, so one theme file (`--theme`) serves both |
 
 ## OpenVDM
 
@@ -175,7 +185,8 @@ OpenVDM's hooks through the cruise, as nav-qa-processing's and sbe-qa-processing
   `transfer` is the hook's or blank, and with `--changed-files` only those whose files changed.
 - **Writes, into the extra directory,** each winch's `<CRUISE>_<WINCH>_wire_log.csv`,
   `<CRUISE>_<WINCH>_checks.csv`, its figures (`<CRUISE>_<WINCH>_plots/`, [Figures](#figures)),
-  `<CRUISE>_<WINCH>_report.pdf` and `<CRUISE>_<WINCH>_config.toml`, the config it made from
+  `<CRUISE>_<WINCH>_report.pdf`, `<CRUISE>_<WINCH>_report.ipynb` and
+  `<CRUISE>_<WINCH>_config.toml`, the config it made from
   OpenVDM's cruise and the site TOML, and assessed from: `run -c` on it repeats the run.
   Earlier runs' files are replaced. As root, the files are given to OpenVDM's warehouse user.
 - **Adds those files to the cruise's MD5 summary,** with OpenVDM's `utils/update_md5_summary.py`
@@ -206,6 +217,7 @@ in; `-o` and `--site-config` name another.
 | `[openvdm]` | `output_extra_directory` (default `WINCH_QA`): the OpenVDM extra directory the outputs go in |
 | `[provenance]` | `contact_institution`, `contact_email` |
 | `[thresholds]` | As in a config TOML, for every winch; a winch's own `[winch.thresholds]` win |
+| `[theme]` | As in a config TOML, for every winch's reports (paths relative to the site TOML); the hook's `--theme` file is under it |
 | `[[winch]]` | `name` (names its outputs), `transfer` (optional: only that transfer's hook assesses it), `manufacturer`, `model`, `record_name`; and under it, as in a config TOML, `[winch.tension_member]`, `[[winch.tension_member.break_test]]`, `[[winch.sheave]]`, `[winch.monitoring]`, `[winch.data]`, `[winch.thresholds]` |
 
 ### Troubleshooting

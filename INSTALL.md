@@ -48,7 +48,7 @@ To update, `git pull` in `/opt/winch-data-processing` and run the same `uv sync`
 
 In OpenVDM's web interface, add an extra directory for the outputs (Configuration > Extra
 Directories): name `WINCH_QA`, destination e.g. `Products/WINCH_QA`. The hook writes each
-winch's wire log, checks, figures, PDF report and config there, replacing the previous run's. Another name goes in
+winch's wire log, checks, figures, PDF report, notebook and config there, replacing the previous run's. Another name goes in
 the site TOML's `[openvdm] output_extra_directory`.
 
 ### 3. Write the site TOML
@@ -139,6 +139,7 @@ postHookCommands:
 | (no `--site-config`) | The hook reads the site TOML from step 3 at `/opt/winch-data-processing/configs/site.toml`; give `--site-config=PATH` for one elsewhere |
 | `--openvdm-config` | `openvdm.yaml` itself, for OpenVDM's web address (`siteRoot`) and `vessel` block. This path is the default; give yours if OpenVDM is installed elsewhere |
 | `--changed-files={newFiles}`, `={updatedFiles}` | The transfer's new and updated files, so a winch is assessed only when its files changed. Keep the `--changed-files=` form: OpenVDM drops a bare `{newFiles}` argument when there are none. Not in `preFinalizeCurrentCruise`, which assesses the whole cruise whatever changed |
+| `--theme=THEME_TOML`, `--execute-notebook` | Optional, as nav-qa-processing's: a theme file for the reports (the site TOML's `[theme]` applies on top), and running each winch's notebook (needs the dev group's nbclient and ipykernel, and doubles the run) |
 | `--min-interval=1h` | Skip a winch whose wire log is newer than this (`s`, `m`, `h` or `d`). Each run reads the whole cruise so far, and OpenVDM transfers every 5 minutes and runs its post hooks one at a time; a month at 20 Hz is 52 M records, about 30 s a winch (its memory follows the largest file, not the cruise). Not in `preFinalizeCurrentCruise`, whose wire logs are the final ones |
 
 A ship whose winches are in several collection systems adds an entry for each transfer, and

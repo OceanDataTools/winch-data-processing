@@ -38,8 +38,10 @@ What exists (Phase 1, and Phase 2 in progress):
   `theme.py` (nav-qa-processing's keys, so one theme file serves the three projects; the
   config's `[theme]`), `pdf_report.py` (ReportLab with svglib, nav-qa-processing's `Layout`),
   `reports.py` (`write_reports`: everything a run writes, for `run` and the hook; every
-  output identical run to run: SVGs with a fixed hash salt and no date, the PDF invariant).
-  pypdf (dev) reads the PDF in tests.
+  output identical run to run: SVGs with a fixed hash salt and no date, the PDF invariant, the
+  notebook's cell IDs by position), `notebook.py` with `notebook_template.py` (Ruff checks the
+  template's code; `tests/test_notebook.py` executes it). pypdf, nbclient and ipykernel are
+  dev dependencies; matplotlib, ReportLab and nbformat load only when reports are written.
 - `integrations/openvdm/` (Phase 5, done early): the `openvdm` post-transfer hook,
   `config-from-openvdm` and `site-config`, ported from nav-qa-processing's. The site TOML's
   `[[winch]]` tables are config TOMLs but `[cruise]` (`configs/site.example.toml`); OpenVDM's

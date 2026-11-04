@@ -28,8 +28,9 @@ from winch_data_processing.config import ConfigError, load_config
 from winch_data_processing.integrations.openvdm import cli as openvdm_cli
 from winch_data_processing.network import NetworkError
 from winch_data_processing.rvss import StandardError
+from winch_data_processing.theme import ThemeError
 from winch_data_processing.units import UnitError
-from winch_data_processing.wirelog import output_paths, stem, write_outputs
+from winch_data_processing.wirelog import stem
 
 logger = logging.getLogger(__name__)
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
@@ -43,6 +44,7 @@ EXPECTED_ERRORS = (
     FileNotFoundError,
     NotADirectoryError,
     FileExistsError,
+    ThemeError,
     *(error for integration in INTEGRATIONS for error in integration.EXPECTED_ERRORS),
 )
 MARKS = {
@@ -102,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="directory for the outputs (default: output)",
     )
     run.add_argument("--force", action="store_true", help="overwrite existing outputs")
+    run.add_argument(
+        "--theme",
+        metavar="THEME_TOML",
+        type=Path,
+        help="theme file for the figures; the config's [theme] applies on top",
+    )
     run.set_defaults(handler=_run)
 
     listing = commands.add_parser("formats", help="list the data formats")
@@ -130,11 +138,15 @@ def _run(args) -> int:
     config = load_config(args.config)
     if not args.data_dir.is_dir():
         raise NotADirectoryError(f"{args.data_dir} is not a directory")
-    refuse_overwrite(output_paths(config, args.output).values(), args.force)
+    from winch_data_processing.reports import report_paths, write_reports  # matplotlib
+    from winch_data_processing.theme import resolve_theme
+
+    refuse_overwrite(report_paths(config, args.output).values(), args.force)
+    theme = resolve_theme(args.theme, config)  # before the work: a bad theme fails first
     result = assess(args.data_dir, config)
     for error in result.data.errors:
         print(f"unread: {error}", file=sys.stderr)
-    print_written(write_outputs(result, args.output))
+    print_written(write_reports(result, args.output, theme))
     print("\n".join(summary(result)))
     return 1 if result.failed else 0
 

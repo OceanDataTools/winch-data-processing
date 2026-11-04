@@ -10,7 +10,6 @@ test results come from the operator's records, not the winch's data, so they are
 import csv
 import io
 import re
-from pathlib import Path
 
 from winch_data_processing import __version__
 from winch_data_processing import quantities as q
@@ -131,19 +130,3 @@ def checks_text(result: WinchResult) -> str:
     for check in result.checks:
         writer.writerow([check.name, check.section, check.status.value, check.detail])
     return out.getvalue()
-
-
-def output_paths(config: Config, output: Path) -> dict[str, Path]:
-    base = stem(config)
-    return {
-        "wire log": output / f"{base}_wire_log.csv",
-        "checks": output / f"{base}_checks.csv",
-    }
-
-
-def write_outputs(result: WinchResult, output: Path) -> list[Path]:
-    output.mkdir(parents=True, exist_ok=True)
-    paths = output_paths(result.config, output)
-    paths["wire log"].write_text(wire_log_text(result))
-    paths["checks"].write_text(checks_text(result))
-    return list(paths.values())

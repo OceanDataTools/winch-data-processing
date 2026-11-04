@@ -80,3 +80,35 @@ min_cast_duration = 60.0      # [s]
 cast_padding = 300.0          # [s] before and after, for the lift and the recovery
 max_wire_speed = 300.0        # [m min-1] faster payout steps are counter resets, not deployments
 max_logging_gap = 5.0         # [s] longest gap in a deployment's tension record
+
+# The reports' look (also a theme file given with --theme, these keys at its top level; this
+# table applies over it). The same keys as nav-qa-processing's and sbe-qa-processing's.
+# [theme]
+# page_size = "letter"          # "letter" or "A4"
+# margin = 0.6                  # [in]
+# font = "fonts/Inter.ttf"      # TTF, relative to this file; default DejaVu Sans
+# bold_font = "fonts/Inter-Bold.ttf"
+# font_scale = 1.0              # PDF text sizes
+# figure_font_scale = 1.0       # figure text sizes
+# logo = "logo.png"             # PNG or JPEG, beside the report title
+# organization = ""             # in the footer
+# footer = ""                   # footer text; default the report title
+# palette = "default"           # "default" or "colorblind", then [theme.colors] on top
+# [theme.colors]                # primary draws the tension, secondary the limits
+# primary = "#1f5f8b"
+# secondary = "#d1495b"
+# status_pass = "#d8f0df"
+# status_warn = "#fff1bf"
+# status_fail = "#f6d0cc"
+# status_info = "#eef2f7"
+# status_na = "#f2f2f2"
+# table_header = "#e3e8ef"
+# table_grid = "#9aa4b2"
+# muted_text = "#555555"
+# footer_text = "#666666"
+# land = "#ece6d6"
+# water = "#dbe9f4"
+# coast = "#7a7a7a"
+# rating_green = "#2e8b57"
+# rating_yellow = "#e0b000"
+# rating_red = "#c0392b"

@@ -466,8 +466,11 @@ def test_hook_writes_the_outputs_into_the_extra_directory(hook, tmp_path, capsys
     out = capsys.readouterr().out
     assert "SR2612_CTD: " in out and "2 deployments" in out
     output = cruise_dir / "Products/WINCH_QA"
-    names = ("config.toml", "wire_log.csv", "checks.csv")
+    names = ("config.toml", "wire_log.csv", "checks.csv", "plots")
     assert {p.name for p in output.iterdir()} == {f"SR2612_CTD_{n}" for n in names}
+    figures = ("timeline", "tension_and_payout", "factor_of_safety", "cast_001", "cast_002")
+    svgs = {output / "SR2612_CTD_plots" / f"{f}.svg" for f in figures}
+    assert set((output / "SR2612_CTD_plots").iterdir()) == svgs
 
     # The wire log has the cruise and vessel from OpenVDM and the site TOML
     text = (output / "SR2612_CTD_wire_log.csv").read_text()
@@ -485,7 +488,8 @@ def test_hook_writes_the_outputs_into_the_extra_directory(hook, tmp_path, capsys
     # Every file written goes to OpenVDM's MD5 summary
     (md5_command,) = md5_update.commands
     assert md5_command[2:4] == ["--cruise-id", "SR2612"]
-    assert set(md5_command[4:]) == {str(output / f"SR2612_CTD_{n}") for n in names}
+    files = {str(output / f"SR2612_CTD_{n}") for n in names if n != "plots"}
+    assert set(md5_command[4:]) == files | {str(svg) for svg in svgs}
     assert "queued an MD5 summary update" in out
 
 

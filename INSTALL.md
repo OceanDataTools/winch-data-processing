@@ -48,7 +48,7 @@ To update, `git pull` in `/opt/winch-data-processing` and run the same `uv sync`
 
 In OpenVDM's web interface, add an extra directory for the outputs (Configuration > Extra
 Directories): name `WINCH_QA`, destination e.g. `Products/WINCH_QA`. The hook writes each
-winch's wire log, checks and config there, replacing the previous run's. Another name goes in
+winch's wire log, checks, figures and config there, replacing the previous run's. Another name goes in
 the site TOML's `[openvdm] output_extra_directory`.
 
 ### 3. Write the site TOML

@@ -124,14 +124,15 @@ def _openvdm_winch(args: argparse.Namespace, run, site_root: str) -> None:
     from winch_data_processing.cli import summary
     from winch_data_processing.config import load_config
     from winch_data_processing.integrations.openvdm import hook as openvdm
-    from winch_data_processing.wirelog import output_paths, stem, write_outputs
+    from winch_data_processing.reports import report_paths, write_reports
+    from winch_data_processing.wirelog import stem
 
     name = stem(run.config)
     if not run.fileset_dir.is_dir():
         print(f"{run.fileset_dir} doesn't exist yet; nothing to do")
         return
     if args.min_interval:
-        wire_log = output_paths(run.config, run.output_dir)["wire log"]
+        wire_log = report_paths(run.config, run.output_dir)["wire log"]
         written = openvdm.written_within(wire_log, openvdm.duration_seconds(args.min_interval))
         if written is not None:
             print(
@@ -153,7 +154,7 @@ def _openvdm_winch(args: argparse.Namespace, run, site_root: str) -> None:
     result = assess(run.fileset_dir, load_config(snapshot))
     for error in result.data.errors:
         print(f"  unread: {error}")
-    written = [snapshot, *write_outputs(result, run.output_dir)]
+    written = [snapshot, *write_reports(result, run.output_dir)]
     openvdm.chown_tree(run.output_dir, run.owner)
     print_written(written)
     print("\n".join(summary(result)))

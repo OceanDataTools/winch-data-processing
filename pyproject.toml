@@ -7,7 +7,11 @@ license = "MIT"
 license-files = ["LICENSE.md"]
 requires-python = ">=3.11"
 dependencies = [
+  "matplotlib>=3.9",
+  "nbformat>=5.10",
   "numpy >= 2.0",
+  "reportlab>=4.2",
+  "svglib>=1.5",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +23,9 @@ winch-data-processing = "winch_data_processing.cli:main"
 
 [dependency-groups]
 dev = [
+  "ipykernel>=6.29",
+  "nbclient>=0.10",
+  "pypdf>=5.0",
   "pytest >= 8.3",
   "pytest-xdist >= 3.8.0",
   "pyyaml >= 6.0",  # the openvdm extra, for its tests

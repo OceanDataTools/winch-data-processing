@@ -15,6 +15,9 @@ from pathlib import Path
 import pytest
 import yaml
 from conftest import ROOT, START, cast, lci_lines
+from matplotlib.figure import Figure
+from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4
 
 from winch_data_processing.cli import main
 from winch_data_processing.config import ConfigError, Thresholds, load_config, loads_config
@@ -120,6 +123,16 @@ def test_the_example_site_config_loads():
         ("trawl", "OpenRVDAS", "*trawl*.txt"),
     ]
     assert example.output_extra_directory == "WINCH_QA"
+
+
+def test_a_site_theme_round_trips(tmp_path):
+    text = SITE + '\n[theme]\npalette = "colorblind"\n[theme.colors]\nprimary = "#123456"\n'
+    site = openvdm.load_site_config(site_config(tmp_path, text))
+    assert site.theme == {"palette": "colorblind", "colors": {"primary": "#123456"}}
+    again = openvdm.load_site_config(site_config(tmp_path, openvdm.site_config_to_toml(site)))
+    assert again == site
+    with pytest.raises(ConfigError, match="page_size must be one of letter, A4"):
+        openvdm.load_site_config(site_config(tmp_path, SITE + '\n[theme]\npage_size = "A3"\n'))
 
 
 def test_site_config_round_trips(tmp_path):
@@ -466,8 +479,11 @@ def test_hook_writes_the_outputs_into_the_extra_directory(hook, tmp_path, capsys
     out = capsys.readouterr().out
     assert "SR2612_CTD: " in out and "2 deployments" in out
     output = cruise_dir / "Products/WINCH_QA"
-    names = ("config.toml", "wire_log.csv", "checks.csv")
+    names = ("config.toml", "wire_log.csv", "checks.csv", "plots", "report.pdf", "report.ipynb")
     assert {p.name for p in output.iterdir()} == {f"SR2612_CTD_{n}" for n in names}
+    figures = ("timeline", "tension_and_payout", "factor_of_safety", "cast_001", "cast_002")
+    svgs = {output / "SR2612_CTD_plots" / f"{f}.svg" for f in figures}
+    assert set((output / "SR2612_CTD_plots").iterdir()) == svgs
 
     # The wire log has the cruise and vessel from OpenVDM and the site TOML
     text = (output / "SR2612_CTD_wire_log.csv").read_text()
@@ -485,7 +501,8 @@ def test_hook_writes_the_outputs_into_the_extra_directory(hook, tmp_path, capsys
     # Every file written goes to OpenVDM's MD5 summary
     (md5_command,) = md5_update.commands
     assert md5_command[2:4] == ["--cruise-id", "SR2612"]
-    assert set(md5_command[4:]) == {str(output / f"SR2612_CTD_{n}") for n in names}
+    files = {str(output / f"SR2612_CTD_{n}") for n in names if n != "plots"}
+    assert set(md5_command[4:]) == files | {str(svg) for svg in svgs}
     assert "queued an MD5 summary update" in out
 
 
@@ -520,6 +537,38 @@ def test_a_transfer_without_winches_has_nothing_to_do(hook, tmp_path, capsys):
     command[1] = "CTD"
     assert main([*command, "--site-config", str(site_config(tmp_path))]) == 0
     assert "CTD: the site config has no [[winch]] in it" in capsys.readouterr().out
+
+
+def test_the_site_theme_and_theme_file_reach_the_reports(hook, tmp_path):
+    """The site's [theme] goes into each winch's snapshot, its paths absolute, so `run -c` on
+    the snapshot looks the same; --theme is the file under it
+    """
+    command, cruise_dir, _ = hook
+    Figure(figsize=(2, 1)).savefig(tmp_path / "logo.png")
+    text = SITE + '\n[theme]\npalette = "colorblind"\nlogo = "logo.png"\n'
+    theme_file = tmp_path / "theme.toml"
+    theme_file.write_text('page_size = "A4"\n')
+    command += ["--site-config", str(site_config(tmp_path, text)), "--theme", str(theme_file)]
+    openrvdas(cruise_dir / "OpenRVDAS")
+    assert main(command) == 0
+    output = cruise_dir / "Products/WINCH_QA"
+    snapshot = load_config(output / "SR2612_CTD_config.toml")
+    logo = str((tmp_path / "logo.png").resolve())
+    assert snapshot.theme == {"palette": "colorblind", "logo": logo}
+    box = PdfReader(output / "SR2612_CTD_report.pdf").pages[0].mediabox
+    assert (round(float(box.width)), round(float(box.height))) == tuple(round(x) for x in A4)
+
+
+def test_a_theme_file_that_cant_be_used_fails_before_any_work(hook, tmp_path, capsys):
+    command, cruise_dir, md5_update = hook
+    theme_file = tmp_path / "theme.toml"
+    theme_file.write_text('palette = "sepia"\n')
+    command += ["--site-config", str(site_config(tmp_path)), "--theme", str(theme_file)]
+    openrvdas(cruise_dir / "OpenRVDAS")
+    assert main(command) == 1
+    err = capsys.readouterr().err
+    assert len(err.splitlines()) == 1 and "palette must be one of default, colorblind" in err
+    assert not (cruise_dir / "Products").exists() and not md5_update.commands
 
 
 def test_min_interval_skips_a_winch_with_a_recent_wire_log(hook, tmp_path, capsys):

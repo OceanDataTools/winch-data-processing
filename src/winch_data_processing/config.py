@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from winch_data_processing import rvss, units
+from winch_data_processing import rvss, theme, units
 from winch_data_processing.rvss import Kind
 
 
@@ -149,6 +149,7 @@ class Config:
     sheaves: tuple[Sheave, ...] = ()
     monitoring: Monitoring = field(default_factory=Monitoring)
     thresholds: Thresholds = field(default_factory=Thresholds)
+    theme: dict = field(default_factory=dict)  # [theme], checked, its paths absolute (theme.py)
     path: Path | None = None
 
 
@@ -189,6 +190,7 @@ SCHEMA = {
         "columns": {"time": None, "tension": None, "payout": None, "speed": None},
     },
     "thresholds": {name: None for name in Thresholds.__dataclass_fields__},
+    "theme": theme.SCHEMA,
 }
 # Which tables are arrays of tables ([[sheave]], [[tension_member.break_test]])
 ARRAYS = {("sheave",), ("tension_member", "break_test")}
@@ -210,15 +212,17 @@ def loads_config(text: str) -> Config:
 def config_from_dict(data: dict, path: Path | None, where: str) -> Config:
     check_keys(data, SCHEMA, where)
     try:
-        return _config(data, path)
+        return _config(data, path, where)
     except (KeyError, TypeError, ValueError) as error:
         if isinstance(error, ConfigError | rvss.StandardError):
             raise
+        if isinstance(error, theme.ThemeError):
+            raise ConfigError(str(error)) from None
         message = f"no {error.args[0]}" if isinstance(error, KeyError) else str(error)
         raise ConfigError(f"{where}: {message}") from None
 
 
-def _config(data: dict, path: Path | None) -> Config:
+def _config(data: dict, path: Path | None, where: str) -> Config:
     cruise, winch = data.get("cruise", {}), data.get("winch", {})
     provenance = data.get("provenance", {})
     member = data.get("tension_member")
@@ -300,6 +304,7 @@ def _config(data: dict, path: Path | None) -> Config:
         monitoring=monitoring,
         data=_data_source(data["data"]),
         thresholds=Thresholds(**{k: float(v) for k, v in data.get("thresholds", {}).items()}),
+        theme=theme.theme_table(data.get("theme", {}), path.parent if path else None, where),
         path=path,
     )
 

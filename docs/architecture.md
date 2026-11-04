@@ -58,6 +58,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 - `notebook.py`, `notebook_template.py`: the notebook that re-runs the assessment, its cells a
   Python file in jupytext's percent format that Ruff checks, with markers `build_notebook`
   fills (nav-qa-processing's, without its integrations' extras); cell IDs by position.
+- `wirerecord.py`: the wire record, a tension member's deployments across cruises
+  (`merge(records, result)`, `load(directory)` -> `WireRecord`, `totals`); the only module that
+  reads or writes it. `record_report.py`: its report, text and PDF.
 - `reports.py`: `write_reports(result, output, theme)`, everything a run writes
   (`report_paths`); the CLI and the hook both call it.
 - `cli.py`: `run`, `formats`, and the integrations' commands (`INTEGRATIONS`: each module's
@@ -161,8 +164,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
      per cruise) and checked when read, as configs are, with an example showing every key. A
      database and a dedicated UI may come with adoption: the record is read and written only
      through one module, so it can replace the files without touching the reports or the hook.
-   - **Steps, a PR each:** (1) the deployments ledger and a report of the deployments since the
-     last break test (number, duration, deepest) and over the wire's life; (2) the events, in
+   - **Steps, a PR each:** (1, done) the deployments ledger and a report of the deployments
+     since the last break test (number, duration, deepest) and over the wire's life, the break
+     tests from the latest merged cruise's config (`tension_member.toml`); (2) the events, in
      the report (the last lubrication, length after cutbacks); (3) the record's break tests as
      the config's, entered once; (4) the NSF Wire Pool database export, once its upload format
      is known; (5) optionally, wear by position along the wire, tracked through cutbacks.

@@ -162,6 +162,10 @@ def _openvdm_winch(args: argparse.Namespace, run, site_root: str) -> None:
     written = [snapshot, *reports]
     openvdm.chown_tree(run.output_dir, run.owner)
     print_written(written)
+    if args.wire_record:
+        from winch_data_processing.cli import merge_wire_record
+
+        merge_wire_record(args.wire_record, result)
     print("\n".join(summary(result)))
     _queue_md5_update(args, run, written)
 
@@ -331,6 +335,16 @@ def add_commands(commands) -> None:
         "--execute-notebook",
         action="store_true",
         help="run each winch's notebook and save its outputs (needs nbclient and ipykernel)",
+    )
+    hook.add_argument(
+        "--wire-record",
+        metavar="RECORDS_DIR",
+        type=Path,
+        help=(
+            "merge each winch's deployments into its tension member's wire record, "
+            "RECORDS_DIR/<NSF-ID>/, replacing the cruise's earlier ones (outside the cruise, "
+            "so not in its MD5 summary)"
+        ),
     )
     # OpenVDM shows the hook's failure message, so every error is one line (cli.main)
     hook.set_defaults(handler=_openvdm, every_error_one_line=True)

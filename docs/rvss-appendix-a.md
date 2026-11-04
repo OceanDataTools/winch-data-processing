@@ -44,7 +44,7 @@ to 2.5; Table A.8.2 requires them before FS 2.8), and this tool follows the adop
 | Requirement | Section | Shown by | Check |
 |---|---|---|---|
 | Each deployment's maximum tension, the line out at it, and its maximum payout, logged | A.5.2.1, A.5.3.1, A.8.3.6 | data | the wire log's rows |
-| Number and duration of deployments since the last break test | A.5.2.1 | data, across cruises | this cruise's deployments; across cruises with the wire record (Phase 4) |
+| Number and duration of deployments since the last break test | A.5.2.1 | data, across cruises | the wire record (`--wire-record`, `wire-record report`): deployments started on or after the last break test's date |
 | Halt at the selected FS (tension within the SWT) | Tables A.8.1–A.8.5 | data | Tension within the safe working tension |
 | Never below FS 2.0 for cables, 1.5 for wire rope, 5.0 for synthetics without approval | A.8.3, A.8.4, A.8.3.1 | data | Never below the lowest FS allowed |
 | Peak tension over sheaves beyond the elastic limit (cable FS 1.8, wire rope 1.33) retires the length | A.5.6, A.6.2 | data | Peak tension within the elastic limit |

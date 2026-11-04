@@ -1,0 +1,10 @@
+# The tension member as the latest cruise merged into this record gives it, and the
+# break tests merged cruises' configs have listed (events.toml's are there)
+[tension_member]
+id = "ASSUMED-HYDRO"
+kind = "cable"
+description = "assumed: 0.322 in. 3-conductor EM cable"
+nominal_breaking_load = 10000.0
+factor_of_safety = 2.5
+diameter = 0.322
+largest_wire_diameter = 0.0375

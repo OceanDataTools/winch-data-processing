@@ -1,0 +1,24 @@
+# cruise: RR2403
+# cruise_name: Origin and Evolution of Intraplate Magmatism at the Revillagigedo Archipelago
+# cruise_pi: Katherine Kelley
+# vessel: Roger Revelle
+# winch: hydro
+# winch_manufacturer: Markey
+# winch_model: DESH-5
+# tension_member: ASSUMED-HYDRO
+# tension_member_kind: cable
+# tension_member_description: assumed: 0.322 in. 3-conductor EM cable
+# nominal_breaking_load: 10000 lbf
+# assigned_breaking_load: 10000 lbf
+# factor_of_safety: 2.5
+# safe_working_tension: 4000 lbf
+# rvss_table: RVSS Appendix A Table A.8.2
+# diameter: 0.322 in
+# break_test: 2023-11-15 10200 lbf
+# deployments: 1
+# files: 1
+# written_by: winch-data-processing 0.1.0
+# field_unit: 1,,,s,m,lbf,,m,1,1,Hz,s
+# field_long_name: Deployment number,Deployment start,Deployment end,Duration,Maximum payout,Maximum tension,Time of maximum tension,Line out at maximum tension,Minimum factor of safety,Tension samples,Logging rate,Longest logging gap
+cast,start,end,duration,max_payout,max_tension,max_tension_time,payout_at_max_tension,min_factor_of_safety,samples,logging_rate,longest_gap
+1,2024-04-06T21:58:25.013Z,2024-04-06T22:29:15.473Z,1850.5,499.8,3593,2024-04-06T22:25:25.794Z,-6.4,2.78,36814,19.9,0.10

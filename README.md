@@ -15,9 +15,14 @@ Part of the [OceanDataTools](https://github.com/OceanDataTools) QA family with
 [nav-qa-processing](https://github.com/OceanDataTools/nav-qa-processing) and
 [sbe-qa-processing](https://github.com/OceanDataTools/sbe-qa-processing), and built the same way.
 
-**Status:** Phase 1 of [docs/architecture.md](docs/architecture.md)'s plan (the readers below,
-deployments, the wire log and the checks) and its [OpenVDM](#openvdm) hook. The PDF report,
-figures and notebook come next.
+**Status:** Phases 1 and 2 of [docs/architecture.md](docs/architecture.md)'s plan (the readers
+below, deployments, the wire log, the checks, the PDF report, figures and notebook), its
+[OpenVDM](#openvdm) hook, and the [wire record](#the-wire-record) across cruises. What's left is
+in the [issues](https://github.com/OceanDataTools/winch-data-processing/issues), each with what it
+needs to begin.
+
+**[docs/examples](docs/examples/)** has what it writes for a real cast, RR2403's hydro winch: the
+PDF report, the wire log, the checks, two figures, and a wire record's report.
 
 ## Install
 

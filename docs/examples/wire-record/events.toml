@@ -1,0 +1,38 @@
+# ILLUSTRATIVE ONLY: made-up events for docs/examples' wire record, to show the report's
+# maintenance and events. They are not R/V Roger Revelle's, nor any real tension member's.
+# The format is configs/events.example.toml's.
+
+[[spooling]]
+date = 2023-06-20
+length = 8000
+winch = "hydro"
+note = "illustrative: new wire spooled"
+
+[[break_test]]
+date = 2023-11-15
+load = 10200
+note = "illustrative: TBL above the NBL, so the ABL stays the NBL"
+
+[[lubrication]]
+date = 2024-01-10
+lubricant = "illustrative lubricant"
+length = 2500
+note = "illustrative: the outer 2,500 m, in port"
+
+[[cutback]]
+date = 2024-02-05
+length = 30
+reason = "re-terminating"
+note = "illustrative"
+
+[[termination]]
+date = 2024-02-05
+kind = "illustrative mechanical termination"
+proof_load = 4000
+note = "illustrative: proof tested to the SWT"
+
+[[test]]
+date = 2024-02-06
+kind = "resistance"
+result = "illustrative: conductors within specification"
+note = "after re-terminating"

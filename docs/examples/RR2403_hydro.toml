@@ -1,0 +1,29 @@
+# RR2403, R/V Roger Revelle's hydro winch (Markey DESH-5), its LCI-90i logged by OpenRVDAS: the
+# one cast in tests/data (R2R fileset 160178), for docs/examples. The cruise is R2R's citation's;
+# the tension member is ASSUMED (R2R doesn't record it): a typical 0.322 in. EM cable at FS 2.5.
+# The sheaves and the monitoring system aren't known, so their checks warn.
+[cruise]
+id = "RR2403"
+name = "Origin and Evolution of Intraplate Magmatism at the Revillagigedo Archipelago"
+pi = "Katherine Kelley"
+vessel_name = "Roger Revelle"
+start = 2024-03-29
+end = 2024-04-27
+
+[winch]
+name = "hydro"
+manufacturer = "Markey"
+model = "DESH-5"
+
+[tension_member]
+id = "ASSUMED-HYDRO"
+kind = "cable"
+description = "assumed: 0.322 in. 3-conductor EM cable"
+nominal_breaking_load = 10000
+factor_of_safety = 2.5
+diameter = 0.322
+largest_wire_diameter = 0.0375
+
+[data]
+format = "openrvdas_lci90i"
+files = "*hydro*.txt"

@@ -29,9 +29,19 @@ in the [issues](https://github.com/OceanDataTools/winch-data-processing/issues),
 needs to begin.
 
 **[docs/examples](docs/examples/)** has what it writes for a real cast, RR2403's hydro winch: the
-PDF report, the wire log, the checks, two figures, and a wire record's report.
+PDF report, the wire log, the checks, the figures, and a wire record's report. The figures, as the
+PDF shows them:
 
-![RR2403's hydro winch: payout and tension through the cruise, the deployment shaded](docs/examples/run/RR2403_hydro_plots/timeline.svg)
+<table>
+<tr>
+<td width="50%"><img src="docs/examples/run/RR2403_hydro_plots/timeline.svg" alt="RR2403's hydro winch: payout and tension against time, the deployment shaded, with the SWT"></td>
+<td width="50%"><img src="docs/examples/run/RR2403_hydro_plots/cast_001.svg" alt="The cast: tension and payout against time, with the limits and the peak"></td>
+</tr>
+<tr>
+<td><img src="docs/examples/run/RR2403_hydro_plots/tension_and_payout.svg" alt="The cast's tension against its payout, with the limits"></td>
+<td><img src="docs/examples/run/RR2403_hydro_plots/factor_of_safety.svg" alt="The cast's records by factor of safety, with the selected FS, the alarm point, the lowest FS allowed and the elastic limit"></td>
+</tr>
+</table>
 
 ## Install
 
@@ -136,7 +146,7 @@ In `<CRUISE>_<WINCH>_plots/`, as SVG, identical from run to run:
 | `factor_of_safety.svg` | The deployments' records by factor of safety (ABL / tension), with the selected FS, the table's alarm point, the lowest FS allowed and the elastic limit |
 | `cast_NNN.svg` | Each deployment's tension and payout against time, with the limits and its peak |
 
-![RR2403's cast: tension and payout against time, with the limits and the peak](docs/examples/run/RR2403_hydro_plots/cast_001.svg)
+RR2403's are in the [gallery](#winch-data-processing) at the top.
 
 The limits are the SWT (ABL / the selected FS), the alarm setting (`[monitoring] alarm_tension`,
 or the table's alarm point without one), the lowest FS the kind may be operated to, and the

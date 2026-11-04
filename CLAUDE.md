@@ -56,8 +56,8 @@ What exists (Phases 1, 2 and 4's first steps):
   `venv/`, or `OPENVDM_SOURCE`; skipped without). Keep the hook's arguments' names: installed
   `openvdm.yaml` files call them.
 
-- `docs/examples/` has RR2403's outputs (the PDF report, the wire log and checks, the timeline and
-  cast figures, a wire record and its report, with illustrative events). When a change alters
+- `docs/examples/` has RR2403's outputs (the PDF report, the wire log and checks, the four
+  figures, a wire record and its report, with illustrative events). When a change alters
   the reports, rebuild them with the commands in `docs/examples/README.md`, from the repo root;
   `tests/test_examples.py` fails while the text outputs are stale.
 

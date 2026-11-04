@@ -47,7 +47,8 @@ and prints the checks; it exits 1 when a check fails. Every output is identical 
 
 | Command | What it does |
 |---|---|
-| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML] [--execute-notebook]` | Read the winch's raw files, find the deployments, write the wire log, the checks, the figures, the PDF report and the notebook |
+| `run DATA_DIR -c CONFIG [-o OUTPUT] [--force] [--theme THEME_TOML] [--execute-notebook] [--wire-record RECORDS_DIR]` | Read the winch's raw files, find the deployments, write the wire log, the checks, the figures, the PDF report and the notebook; with `--wire-record`, merge the deployments into the tension member's [wire record](#the-wire-record) |
+| `wire-record report RECORD_DIR [-o OUTPUT_DIR] [--force] [--theme THEME_TOML]` | A tension member's deployments since its last break test and over its record, as text and `<NSF-ID>_wire_record.pdf` |
 | `formats` | List the data formats |
 | `openvdm TRANSFER [--site-config SITE_TOML] ...` | The OpenVDM hook: assess each of the transfer's winches for OpenVDM's current cruise ([OpenVDM](#openvdm)) |
 | `config-from-openvdm TRANSFER [--site-config SITE_TOML] [-o OUTPUT_DIR]` | Write each winch's config TOML from OpenVDM's cruise, as the hook would, without assessing |
@@ -142,6 +143,25 @@ every figure, then a cell that writes the reports again. Edit the config's `[thr
 tension member and re-run it to see what changes. `--execute-notebook` runs it and saves its
 outputs (but the last cell's: the reports were just written); that needs nbclient and ipykernel,
 in the dev group (`uv sync`), and a run takes as long again.
+
+### The wire record
+
+A.5.2.1 asks for a history log per tension member, for its service life, transferring with it:
+among what no one cruise's wire log holds, the number and duration of its deployments since the
+last break test. `--wire-record RECORDS_DIR` (on `run` and the OpenVDM hook) merges each run's
+deployments into `RECORDS_DIR/<NSF-ID>/`:
+
+| File | What it holds |
+|---|---|
+| `deployments.csv` | Every deployment of every cruise merged in, with the wire log's columns and each row's cruise, vessel and winch. Merging a cruise again replaces its rows, so the hook can merge after every run |
+| `tension_member.toml` | The tension member as the latest merged cruise's config gives it, with its break tests |
+
+`wire-record report RECORDS_DIR/<NSF-ID>` prints and writes (`<NSF-ID>_wire_record.pdf`) the
+deployments since the last break test and over the record (number, hours, deepest payout,
+highest tension, lowest FS), each cruise's, and every deployment since the last break test.
+"Since" counts deployments that started on or after the test's date: a test has a date, not a
+time. The record is plain files: copy its directory with the tension member when it moves.
+Cutbacks, spooling, lubrication, test results and terminations are to come (Phase 4).
 
 ## Configuration
 

@@ -111,16 +111,19 @@ def wire_log_text(result: WinchResult) -> str:
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow([quantity.name for quantity, _ in COLUMNS])
     for cast in result.casts:
-        row = []
-        for quantity, value in COLUMNS:
-            if value is None:
-                row.append(
-                    quantity.format(abl / cast.max_tension if cast.max_tension > 0 else None)
-                )
-            else:
-                row.append(quantity.format(value(cast)))
-        writer.writerow(row)
+        writer.writerow(deployment_row(cast, abl))
     return out.getvalue()
+
+
+def deployment_row(cast, abl: float) -> list[str]:
+    """A deployment's values in `COLUMNS`' order, formatted; its min FS from `abl` [lbf]"""
+    row = []
+    for quantity, value in COLUMNS:
+        if value is None:
+            row.append(quantity.format(abl / cast.max_tension if cast.max_tension > 0 else None))
+        else:
+            row.append(quantity.format(value(cast)))
+    return row
 
 
 def checks_text(result: WinchResult) -> str:

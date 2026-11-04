@@ -39,3 +39,8 @@ def write_config_toml(text: str, name: str, args: argparse.Namespace) -> None:
 def print_written(written: list[Path]) -> None:
     for path in written:
         print(f"wrote {path}")
+
+
+def plural(n: int, thing: str) -> str:
+    """ "1 deployment", "2 deployments", with thousands separated"""
+    return f"{n:,} {thing}" if n == 1 else f"{n:,} {thing}s"

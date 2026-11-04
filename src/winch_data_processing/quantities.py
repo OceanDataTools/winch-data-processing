@@ -88,6 +88,10 @@ RATIO = Quantity("ratio", "Ratio", Datatype.FLOAT, "1", 1)
 
 # The wire log's per-deployment columns (A.5.2.1, A.5.3.1): name, then the quantity that
 # formats it, with its own description
+# The wire record's own columns (wirerecord.py): whose deployment each row is
+CRUISE = Quantity("cruise", "Cruise", Datatype.STRING)
+VESSEL = Quantity("vessel", "Vessel", Datatype.STRING)
+WINCH = Quantity("winch", "Winch", Datatype.STRING)
 CAST = Quantity("cast", "Deployment number", Datatype.INTEGER, "1")
 START = Quantity("start", "Deployment start", Datatype.DATETIME, decimals=3)
 END = Quantity("end", "Deployment end", Datatype.DATETIME, decimals=3)

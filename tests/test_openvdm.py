@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 from pypdf import PdfReader
 from reportlab.lib.pagesizes import A4
 
+from winch_data_processing import wirerecord
 from winch_data_processing.cli import main
 from winch_data_processing.config import ConfigError, Thresholds, load_config, loads_config
 from winch_data_processing.integrations.openvdm import hook as openvdm
@@ -557,6 +558,23 @@ def test_the_site_theme_and_theme_file_reach_the_reports(hook, tmp_path):
     assert snapshot.theme == {"palette": "colorblind", "logo": logo}
     box = PdfReader(output / "SR2612_CTD_report.pdf").pages[0].mediabox
     assert (round(float(box.width)), round(float(box.height))) == tuple(round(x) for x in A4)
+
+
+def test_the_hook_merges_into_the_wire_record(hook, tmp_path, capsys):
+    """Each run replaces the cruise's rows; the record is outside the cruise and its MD5 summary"""
+    command, cruise_dir, md5_update = hook
+    records = tmp_path / "records"
+    command += ["--site-config", str(site_config(tmp_path)), "--wire-record", str(records)]
+    openrvdas(cruise_dir / "OpenRVDAS")
+    assert main(command) == 0
+    assert main(command) == 0
+    assert capsys.readouterr().out.count("merged 2 deployments into") == 2
+    record = wirerecord.load(records / "NSF-CTD")
+    assert [(d.cruise, d.winch, d.number) for d in record.deployments] == [
+        ("SR2612", "CTD", 1), ("SR2612", "CTD", 2),
+    ]  # fmt: skip
+    assert record.deployments[0].vessel == "Sally Ride"
+    assert all(str(records) not in arg for c in md5_update.commands for arg in c)
 
 
 def test_a_theme_file_that_cant_be_used_fails_before_any_work(hook, tmp_path, capsys):

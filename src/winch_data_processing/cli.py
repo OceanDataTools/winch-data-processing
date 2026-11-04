@@ -23,7 +23,7 @@ from pathlib import Path
 from winch_data_processing import __version__, formats
 from winch_data_processing.assess import WinchResult, assess
 from winch_data_processing.checks import Status
-from winch_data_processing.clitools import print_written, refuse_overwrite
+from winch_data_processing.clitools import plural, print_written, refuse_overwrite
 from winch_data_processing.config import ConfigError, load_config
 from winch_data_processing.integrations.openvdm import cli as openvdm_cli
 from winch_data_processing.network import NetworkError
@@ -32,6 +32,7 @@ from winch_data_processing.rvss import StandardError
 from winch_data_processing.theme import ThemeError
 from winch_data_processing.units import UnitError
 from winch_data_processing.wirelog import stem
+from winch_data_processing.wirerecord import WireRecordError
 
 logger = logging.getLogger(__name__)
 LOG_LEVELS = (logging.WARNING, logging.INFO, logging.DEBUG)
@@ -47,6 +48,7 @@ EXPECTED_ERRORS = (
     FileExistsError,
     ThemeError,
     NotebookError,
+    WireRecordError,
     *(error for integration in INTEGRATIONS for error in integration.EXPECTED_ERRORS),
 )
 MARKS = {
@@ -117,7 +119,40 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="run the notebook and save its outputs (needs nbclient and ipykernel)",
     )
+    run.add_argument(
+        "--wire-record",
+        metavar="RECORDS_DIR",
+        type=Path,
+        help=(
+            "merge the deployments into the tension member's wire record, "
+            "RECORDS_DIR/<NSF-ID>/, replacing this cruise's earlier ones"
+        ),
+    )
     run.set_defaults(handler=_run)
+
+    record = commands.add_parser(
+        "wire-record", help="a tension member's history across cruises (A.5.2.1)"
+    )
+    record_commands = record.add_subparsers(
+        dest="record_command", required=True, metavar="COMMAND"
+    )
+    report = record_commands.add_parser(
+        "report",
+        help="the deployments since the last break test and over the record, as text and a PDF",
+    )
+    report.add_argument(
+        "record_dir", metavar="RECORD_DIR", type=Path, help="a tension member's record directory"
+    )
+    report.add_argument(
+        "-o",
+        "--output",
+        metavar="OUTPUT_DIR",
+        type=Path,
+        help="directory for <NSF-ID>_wire_record.pdf (default: the record's directory)",
+    )
+    report.add_argument("--force", action="store_true", help="overwrite an existing report")
+    report.add_argument("--theme", metavar="THEME_TOML", type=Path, help="theme file for the PDF")
+    report.set_defaults(handler=_wire_record_report)
 
     listing = commands.add_parser("formats", help="list the data formats")
     listing.set_defaults(handler=_formats)
@@ -157,8 +192,33 @@ def _run(args) -> int:
         result, args.output, theme, args.theme, execute_notebook=args.execute_notebook
     )
     print_written(written)
+    if args.wire_record:
+        merge_wire_record(args.wire_record, result)
     print("\n".join(summary(result)))
     return 1 if result.failed else 0
+
+
+def merge_wire_record(records: Path, result: WinchResult) -> None:
+    """The run's deployments into the tension member's record (wirerecord.py)"""
+    from winch_data_processing import wirerecord
+
+    directory = wirerecord.merge(records, result)
+    merged = plural(len(result.casts), "deployment")
+    print(f"merged {merged} into {directory / wirerecord.DEPLOYMENTS}")
+
+
+def _wire_record_report(args) -> int:
+    from winch_data_processing import record_report, wirerecord
+    from winch_data_processing.theme import resolve_theme
+
+    record = wirerecord.load(args.record_dir)
+    path = record_report.report_path(record, args.output or args.record_dir)
+    refuse_overwrite([path], args.force)
+    theme = resolve_theme(args.theme)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print_written([record_report.write_report(record, path, theme)])
+    print("\n".join(record_report.summary(record)))
+    return 0
 
 
 def _formats(args) -> int:

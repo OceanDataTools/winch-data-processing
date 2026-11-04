@@ -56,6 +56,10 @@ What exists (Phases 1 and 2):
   `venv/`, or `OPENVDM_SOURCE`; skipped without). Keep the hook's arguments' names: installed
   `openvdm.yaml` files call them.
 
+- `docs/examples/` has RR2403's outputs (the PDF report, the wire log and checks, the timeline and
+  cast figures, a wire record and its report, with illustrative events). When a change alters
+  the reports, rebuild them with the commands in `docs/examples/README.md`, from the repo root.
+
 ## Tooling
 
 - uv, hatchling, `src/` layout, package `winch_data_processing`, console script

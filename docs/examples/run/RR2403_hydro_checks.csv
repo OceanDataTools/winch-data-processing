@@ -1,0 +1,16 @@
+check,section,status,detail
+Deployments,A.5.2.1,info,1 found
+Tension within the safe working tension,"Table A.8.2, A.2.19",pass,every deployment within the SWT 4000 lbf (FS 2.5)
+Never below the lowest FS allowed,"Tables A.8.3, A.8.4",pass,never below FS 2 for a cable
+Peak tension within the elastic limit,A.5.6,pass,never beyond FS 1.8
+Slow-haul checks below FS 2.0,Table A.8.4,n/a,Table A.8.4 only (wire rope from FS 2 to 1.5); the selected FS 2.5 is in Table A.8.2
+Tension logging rate,Table A.8.2,pass,every deployment logged at 3 Hz or more
+Gaps in the tension record,Tables A.8.2 to A.8.5,pass,no gap over 5 s in a deployment
+Tension alarm setting,Table A.8.2,warn,no [monitoring] alarm_tension; must be at or below 3571 lbf (FS 2.8)
+Alarm conditions in the logged data,Table A.8.2,info,not in this format's records; the logging system must show them
+Tension display refresh rate,Table A.8.2,warn,no [monitoring] display_rate; must be 3 Hz or more
+Tension measuring system calibration,Table A.8.2,warn,no [monitoring] last_calibration; every 6 months
+Tension measuring accuracy,Table A.8.2,warn,no [monitoring] accuracy; must be within 4 % of the applied load
+Sheaves and load-carrying rollers,Table A.8.2,warn,no [[sheave]] in the config (A.5.2.1 logs them)
+Break test interval,"Table A.8.2, A.5.1.1",pass,"2023-11-15, due 2025-11-15; every 24 months"
+Assigned breaking load,A.5.6,pass,"ABL 10000 lbf, 100 % of the NBL"

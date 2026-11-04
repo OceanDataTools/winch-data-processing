@@ -151,9 +151,21 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 3. **Phase 3: more formats.** MOTU, Markey and DynaCon control systems' logs, and the LCI-90i
    compared with a real unit's output; alarm conditions where a format logs them. Needs sample
    files from ships. Each format documented as nav-qa-processing's `formats/definitions/`.
-4. **Phase 4: the wire record across cruises.** A tension member's history (deployments since
-   the last break test, cutbacks, spooling, lubrication, test results) kept beside the
-   per-cruise logs, and an export for the NSF Wire Pool database's upload.
+4. **Phase 4: the wire record across cruises.** A.5.2.1's history log, one per tension member
+   for its service life, transferring with it: what no single cruise's wire log can hold.
+   - **Plain files, by NSF identifier** (`records/<NSF-ID>/`): `deployments.csv`, every
+     deployment from every cruise, merged from the wire logs (`run` and the hook with
+     `--wire-record DIR`; re-running a cruise replaces its rows); `events.toml`, the operator's
+     dated break tests, cutbacks and spooling, lubrication, test results (TDR, resistance,
+     OTDR, optical loss) and terminations with their proof tests, edited by hand (they're rare
+     per cruise) and checked when read, as configs are, with an example showing every key. A
+     database and a dedicated UI may come with adoption: the record is read and written only
+     through one module, so it can replace the files without touching the reports or the hook.
+   - **Steps, a PR each:** (1) the deployments ledger and a report of the deployments since the
+     last break test (number, duration, deepest) and over the wire's life; (2) the events, in
+     the report (the last lubrication, length after cutbacks); (3) the record's break tests as
+     the config's, entered once; (4) the NSF Wire Pool database export, once its upload format
+     is known; (5) optionally, wear by position along the wire, tracked through cutbacks.
 5. **Phase 5: OpenVDM hook (done, ahead of Phases 2 to 4).** `openvdm`, `config-from-openvdm`
    and `site-config` as nav-qa-processing's: run after a winch transfer, outputs into the
    cruise's extra directory, a site TOML per ship with its winches and tension members, tested

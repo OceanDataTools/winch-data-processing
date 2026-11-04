@@ -11,7 +11,7 @@ too.
 
 | Directory | Command | Files |
 |---|---|---|
-| [`run/`](run/) | `run`, with `--wire-record` | [the PDF report](run/RR2403_hydro_report.pdf), [the wire log](run/RR2403_hydro_wire_log.csv), [the checks](run/RR2403_hydro_checks.csv), [the timeline](run/RR2403_hydro_plots/timeline.svg) and [the cast](run/RR2403_hydro_plots/cast_001.svg) |
+| [`run/`](run/) | `run`, with `--wire-record` | [the PDF report](run/RR2403_hydro_report.pdf), [the wire log](run/RR2403_hydro_wire_log.csv), [the checks](run/RR2403_hydro_checks.csv), and the figures: [the timeline](run/RR2403_hydro_plots/timeline.svg), [the cast](run/RR2403_hydro_plots/cast_001.svg), [tension against payout](run/RR2403_hydro_plots/tension_and_payout.svg) and [the factor of safety](run/RR2403_hydro_plots/factor_of_safety.svg), all four in the README's gallery |
 | [`wire-record/`](wire-record/) | `wire-record report`, on the record `run` merged the cast into | [the wire record's report](wire-record/ASSUMED-HYDRO_wire_record.pdf), and the record's files: [`deployments.csv`](wire-record/deployments.csv), [`tension_member.toml`](wire-record/tension_member.toml) and [`events.toml`](wire-record/events.toml) |
 
 The wire record's `events.toml` is **illustrative**: made-up spooling, break test, lubrication,
@@ -20,8 +20,7 @@ maintenance and events. They aren't Revelle's, nor any real tension member's. Th
 break test is the one the cruise's checks use (`--wire-record`), so its break test interval
 passes.
 
-Left out: the other two figures and the notebook (which holds local paths); every figure is in
-the PDF.
+Left out: the notebook, which holds local paths.
 
 ![RR2403's cast](run/RR2403_hydro_plots/cast_001.svg)
 
@@ -42,7 +41,8 @@ uv run winch-data-processing run data/RR2403_cast -c docs/examples/RR2403_hydro.
     -o output/examples/run --wire-record output/examples/records
 uv run winch-data-processing wire-record report output/examples/records/ASSUMED-HYDRO
 cp output/examples/run/RR2403_hydro_{report.pdf,wire_log.csv,checks.csv} docs/examples/run/
-cp output/examples/run/RR2403_hydro_plots/{timeline,cast_001}.svg docs/examples/run/RR2403_hydro_plots/
+cp output/examples/run/RR2403_hydro_plots/{timeline,cast_001,tension_and_payout,factor_of_safety}.svg \
+    docs/examples/run/RR2403_hydro_plots/
 cp output/examples/records/ASSUMED-HYDRO/{deployments.csv,tension_member.toml,ASSUMED-HYDRO_wire_record.pdf} \
     docs/examples/wire-record/
 ```

@@ -77,9 +77,9 @@ raw files --formats/<reader>--> Records (per file, the data's units)
 - `integrations/openvdm/hook.py`: the site TOML (`SiteConfig`, `SiteWinch`,
   `load_site_config`, `site_config_to_toml`), OpenVDM's cruise (`fetch_cruise_config` from its
   API, or `load_cruise_json` from a cruise's `cruise_config.json`), the vessel block
-  (`vessel_settings`, `cruise_vessel`), `resolve` (a winch and a cruise -> `HookRun`: its
-  `Config`, the config TOML's tables, the transfer's and extra directory's paths, notes),
-  `cruise_toml`, `has_winch_changes`, `written_within`, `queue_md5_update`, `chown_tree`.
+  (`vessel_settings`, from `openvdm.yaml` or the loaded cruise config), `resolve` (a winch and
+  a cruise -> `HookRun`: its `Config`, the config TOML's tables, the transfer's and extra
+  directory's paths, notes), `cruise_toml`, `has_winch_changes`, `written_within`, `queue_md5_update`, `chown_tree`.
 - `integrations/openvdm/cli.py`: `openvdm` (the hook), `config-from-openvdm`, `site-config`.
 - `integrations/openvdm/site_setup.py`: `site-config`'s prompts.
 

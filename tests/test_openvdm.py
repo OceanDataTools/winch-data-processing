@@ -286,14 +286,29 @@ def test_resolve_prefers_the_site_configs_vessel_settings(tmp_path):
     assert "vessel_name is 'Sally Ride' in the site config and 'Ride'" in run.notes[0]
 
 
-def test_resolve_reads_the_vessel_from_cruise_config_json(tmp_path):
-    cruise_dir = tmp_path / "SR2612"
-    cruise_dir.mkdir()
-    (cruise_dir / "cruise_config.json").write_text(json.dumps({"vessel": {"operator": "SIO"}}))
+def test_resolve_takes_the_vessel_from_a_cruise_config_file(tmp_path):
     loaded = site(SITE, tmp_path)
-    run = openvdm.resolve(cruise_config(tmp_path), loaded, "OpenRVDAS", loaded.winches[0])
-    assert run.config.contact_institution == "SIO"
-    assert run.vessel_source == "cruise_config.json"
+    winch = loaded.winches[0]
+    # From OpenVDM's API, which has no vessel block: the site config alone
+    run = openvdm.resolve(cruise_config(tmp_path), loaded, "OpenRVDAS", winch)
+    assert (run.vessel_source, run.config.vessel_name) == ("none", "Sally Ride")
+
+    # From a cruise's config file (load_cruise_json): its vessel block, named after the file,
+    # whatever OpenVDM's CRUISE_CONFIG_FN calls it. The site config's name wins; the contact it
+    # leaves blank comes from the file
+    vessel = {"name": "Ride", "operator": "SIO", "email": "ops@example.org"}
+    from_file = cruise_config(tmp_path) | {"vessel": vessel}
+    from_file["warehouseConfig"]["cruiseConfigFn"] = "voyage_config.json"
+    run = openvdm.resolve(from_file, loaded, "OpenRVDAS", winch)
+    assert run.vessel_source == "voyage_config.json"
+    assert (run.config.vessel_name, run.config.contact_institution) == ("Sally Ride", "SIO")
+    assert run.config.contact_email == "ops@example.org"
+
+    # openvdm.yaml's vessel block, when given, is used instead
+    yaml_vessel = openvdm.vessel_settings({"email": "ship@example.org"}, "openvdm.yaml")
+    run = openvdm.resolve(from_file, loaded, "OpenRVDAS", winch, yaml_vessel)
+    assert (run.vessel_source, run.config.contact_email) == ("openvdm.yaml", "ship@example.org")
+    assert run.config.contact_institution == ""
 
 
 def test_the_snapshot_is_a_config_toml(tmp_path):

@@ -235,6 +235,8 @@ def test_the_hook_reads_the_cruise_config_openvdm_writes(tmp_path, site):
     assert from_file.config == from_api.config
     assert from_file.config.contact_email == "ops@example.org"
     assert from_file.config.contact_institution == "Scripps Institution of Oceanography"
+    # The vessel block the export saved, named after its file
+    assert from_file.vessel_source == "cruise_config.json"
     assert loads_config(openvdm.cruise_toml(from_file, "x")) == from_api.config
     assert (from_file.fileset_dir, from_file.output_dir) == (
         from_api.fileset_dir,

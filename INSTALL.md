@@ -70,7 +70,7 @@ needn't name it, and `site-config` writes it there from any directory. (`-o` wri
 and the hook's `--site-config` reads another.)
 
 It asks for the vessel's name and contact (from OpenVDM 2.17, `openvdm.yaml`'s `vessel` block
-supplies the defaults), the extra directory from step 2, then each winch: its name (which names
+supplies the defaults: its `name`, and its `operator` and `email` for the contact), the extra directory from step 2, then each winch: its name (which names
 its outputs, `<CRUISE>_<name>_...`), the collection system transfer it's in, its data format
 and a glob of its files within that transfer's directory (e.g. `*hydro*.txt`), and its tension
 member's NSF identifier, kind, NBL, selected factor of safety and diameter. Then add each

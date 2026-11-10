@@ -190,6 +190,23 @@ def test_openvdms_script_refuses_a_cruise_outside_its_warehouse(tmp_path, monkey
     assert job is None
 
 
+# The vessel block -----------------------------------------------------------------------------
+
+
+def test_the_hook_reads_the_vessel_blocks_keys():
+    """Every key the hook reads is in openvdm.yaml.dist's vessel block, so a renamed key fails
+    here, not as a silently blank contact (the contact sub-block became operator and email,
+    OpenVDM #693)
+    """
+    vessel = yaml.safe_load((SOURCE / "server/etc/openvdm.yaml.dist").read_text())["vessel"]
+    for name, path in openvdm.VESSEL_SETTINGS.items():
+        value = vessel
+        for key in path:
+            assert isinstance(value, dict) and key in value, f"{name}: vessel.{'.'.join(path)}"
+            value = value[key]
+        assert not isinstance(value, dict), name
+
+
 # The cruise config file OpenVDM writes -------------------------------------------------------
 
 
@@ -199,7 +216,11 @@ def test_the_hook_reads_the_cruise_config_openvdm_writes(tmp_path, site):
     cruise_dir = warehouse / "SR2612"
     cruise_dir.mkdir(parents=True)
     api = api_cruise_config(warehouse)
-    vessel = {"name": "Sally Ride", "contact": {"email": "ops@example.org"}}
+    vessel = {
+        "name": "Sally Ride",
+        "operator": "Scripps Institution of Oceanography",
+        "email": "ops@example.org",
+    }
     exported = run_openvdm(
         "export_cruise_config", cruise_config=api, vessel=vessel, cruise_dir=str(cruise_dir)
     )
@@ -213,6 +234,7 @@ def test_the_hook_reads_the_cruise_config_openvdm_writes(tmp_path, site):
     )
     assert from_file.config == from_api.config
     assert from_file.config.contact_email == "ops@example.org"
+    assert from_file.config.contact_institution == "Scripps Institution of Oceanography"
     assert loads_config(openvdm.cruise_toml(from_file, "x")) == from_api.config
     assert (from_file.fileset_dir, from_file.output_dir) == (
         from_api.fileset_dir,

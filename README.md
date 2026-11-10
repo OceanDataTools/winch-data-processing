@@ -234,7 +234,8 @@ OpenVDM's hooks through the cruise, as nav-qa-processing's and sbe-qa-processing
 - **The cruise,** from OpenVDM's API (`api/warehouse/getCruiseConfig`): its ID, name, PI,
   location and dates, and where the transfer's files and the extra directory are. An
   open-ended cruise ends today, UTC. The vessel's name and contact come from the site TOML, or
-  where it leaves them blank from `openvdm.yaml`'s `vessel` block (OpenVDM 2.17).
+  where it leaves them blank from `openvdm.yaml`'s `vessel` block (OpenVDM 2.17: `name`, and
+  `operator` and `email` for the contact).
 - **The winches,** from the site TOML: a `[[winch]]` table for each, holding a config TOML's
   tables but `[cruise]` (the tension member, sheaves, monitoring, and `[winch.data]`'s format
   and files glob within the transfer's directory). The hook assesses the winches whose
@@ -271,7 +272,7 @@ in; `-o` and `--site-config` name another.
 |---|---|
 | `[vessel]` | `name` |
 | `[openvdm]` | `output_extra_directory` (default `WINCH_QA`): the OpenVDM extra directory the outputs go in |
-| `[provenance]` | `contact_institution`, `contact_email` |
+| `[provenance]` | `contact_institution`, `contact_email`: the wire logs' contact. Win over `openvdm.yaml`'s `vessel.operator` and `vessel.email` (OpenVDM 2.17), which fill them when blank |
 | `[thresholds]` | As in a config TOML, for every winch; a winch's own `[winch.thresholds]` win |
 | `[theme]` | As in a config TOML, for every winch's reports (paths relative to the site TOML); the hook's `--theme` file is under it |
 | `[[winch]]` | `name` (names its outputs), `transfer` (optional: only that transfer's hook assesses it), `manufacturer`, `model`, `record_name`; and under it, as in a config TOML, `[winch.tension_member]`, `[[winch.tension_member.break_test]]`, `[[winch.sheave]]`, `[winch.monitoring]`, `[winch.data]`, `[winch.thresholds]` |

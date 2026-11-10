@@ -1,7 +1,7 @@
 # Per-ship settings for the OpenVDM hook (winch-data-processing openvdm ...).
 # OpenVDM supplies the cruise ID, name, PI, location and dates. From OpenVDM 2.17,
-# openvdm.yaml's vessel block has the vessel name and contact too; these win, and
-# openvdm.yaml fills any left blank.
+# openvdm.yaml's vessel block has the vessel name, operator and email too (the operator
+# and email are the contact); these win, and openvdm.yaml fills any left blank.
 # Copy to configs/site.toml (ignored by git), where the hook reads it by default, or write
 # it with `winch-data-processing site-config`. Section numbers are RVSS Appendix A's (11th edition, updated 25 June 2026).
 

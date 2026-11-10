@@ -149,8 +149,9 @@ OPENVDM_YAML = {
     "siteRoot": "http://openvdm/",
     "vessel": {
         "name": "Roger Revelle",
-        "contact": {"institution": "SIO", "email": "ops@example.org"},
-        "r2r": {"vessel_id": "RR"},
+        "operator": "SIO",
+        "email": "ops@example.org",
+        "r2r": {"vesselID": "RR"},
     },
 }
 
@@ -163,6 +164,7 @@ def test_openvdm_yaml_values_are_the_defaults(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "openvdm.yaml's vessel block has these" in captured.err
     assert 'contact_email = "ops@example.org"' in captured.out
+    assert 'contact_institution = "SIO"' in captured.out
 
 
 def test_the_site_tomls_values_win_over_openvdm_yamls_as_defaults(tmp_path):

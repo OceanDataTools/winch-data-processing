@@ -276,7 +276,9 @@ def prompt_site_config(
     site = replace(
         defaults,
         vessel_name=ask("vessel_name", "Vessel name (e.g. Roger Revelle)"),
-        contact_institution=ask("contact_institution", "Contact institution for the wire logs"),
+        contact_institution=ask(
+            "contact_institution", "Contact institution for the wire logs (the vessel operator)"
+        ),
         contact_email=ask("contact_email", "Contact email", _email),
         output_extra_directory=ask(
             "output_extra_directory", "OpenVDM extra directory for the outputs"

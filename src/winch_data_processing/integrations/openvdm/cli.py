@@ -387,7 +387,8 @@ def add_commands(commands) -> None:
         help="make the per-ship site TOML for the openvdm hook, by prompting for each field",
         description=(
             "Prompts for the per-ship settings OpenVDM doesn't store: the vessel name and "
-            "contact (unless openvdm.yaml has them, from OpenVDM 2.17), the outputs' extra "
+            "contact (defaulting to openvdm.yaml's vessel name, operator and email, from "
+            "OpenVDM 2.17), the outputs' extra "
             "directory, and each winch: its data format and files, its transfer, and its "
             "tension member. Sheaves, monitoring and break tests are edited in the file. "
             "Works offline. Over an existing file (with --force), its values are the defaults."

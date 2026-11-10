@@ -201,11 +201,14 @@ def test_has_winch_changes(changed, files, expected):
     "block, expected",
     [
         (None, {}),
-        ({"name": " Sally Ride ", "contact": {"email": ""}}, {"vessel_name": "Sally Ride"}),
+        ({"name": " Sally Ride ", "email": ""}, {"vessel_name": "Sally Ride"}),
         (
-            {"name": "", "contact": {"institution": "SIO", "email": "a@b.org"}},
+            {"name": "", "operator": "SIO", "email": "a@b.org", "r2r": {}},
             {"contact_institution": "SIO", "contact_email": "a@b.org"},
         ),
+        ({"name": "  ", "operator": {"not": "a value"}}, {}),
+        # The contact sub-block of OpenVDM 2.17's pre-release builds isn't read (#693)
+        ({"contact": {"institution": "SIO", "email": "a@b.org"}}, {}),
     ],
 )
 def test_vessel_settings(block, expected):
@@ -275,9 +278,7 @@ def test_open_ended_cruise_ends_today_in_utc(tmp_path, monkeypatch):
 
 def test_resolve_prefers_the_site_configs_vessel_settings(tmp_path):
     loaded = site(SITE, tmp_path)
-    vessel = openvdm.vessel_settings(
-        {"name": "Ride", "contact": {"email": "ops@example.org"}}, "openvdm.yaml"
-    )
+    vessel = openvdm.vessel_settings({"name": "Ride", "email": "ops@example.org"}, "openvdm.yaml")
     run = openvdm.resolve(cruise_config(tmp_path), loaded, "OpenRVDAS", loaded.winches[0], vessel)
     assert run.config.vessel_name == "Sally Ride"  # the site config's
     assert run.config.contact_email == "ops@example.org"  # OpenVDM's fills the blank
@@ -288,9 +289,7 @@ def test_resolve_prefers_the_site_configs_vessel_settings(tmp_path):
 def test_resolve_reads_the_vessel_from_cruise_config_json(tmp_path):
     cruise_dir = tmp_path / "SR2612"
     cruise_dir.mkdir()
-    (cruise_dir / "cruise_config.json").write_text(
-        json.dumps({"vessel": {"contact": {"institution": "SIO"}}})
-    )
+    (cruise_dir / "cruise_config.json").write_text(json.dumps({"vessel": {"operator": "SIO"}}))
     loaded = site(SITE, tmp_path)
     run = openvdm.resolve(cruise_config(tmp_path), loaded, "OpenRVDAS", loaded.winches[0])
     assert run.config.contact_institution == "SIO"
@@ -666,7 +665,7 @@ def test_config_from_openvdm_writes_each_winch(two_winches, tmp_path, capsys):
 
 def test_config_from_openvdm_to_stdout(openvdm_api, tmp_path, capsys):
     site_root, _ = openvdm_api
-    config = openvdm_yaml(tmp_path, site_root, vessel={"contact": {"email": "ops@example.org"}})
+    config = openvdm_yaml(tmp_path, site_root, vessel={"email": "ops@example.org"})
     args = ["config-from-openvdm", "OpenRVDAS", "--openvdm-config", str(config)]
     assert main([*args, "--site-config", str(site_config(tmp_path)), "-o", "-"]) == 0
     captured = capsys.readouterr()
@@ -743,7 +742,7 @@ def cruise_config_json(cruise_dir: Path, cruise_id="RR2403") -> Path:
     data = cruise_config(Path("/elsewhere"), cruise_id)
     del data["warehouseConfig"]
     data["md5SummaryFn"] = "MD5_Summary.txt"
-    data["vessel"] = {"name": "Roger Revelle", "contact": {"email": "ops@example.org"}}
+    data["vessel"] = {"name": "Roger Revelle", "email": "ops@example.org"}
     cruise_dir.mkdir(parents=True, exist_ok=True)
     path = cruise_dir / "cruise_config.json"
     path.write_text(json.dumps(data))
